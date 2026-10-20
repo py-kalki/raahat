@@ -1,0 +1,110 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  DRIVER
+  OFFICER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TripStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertStatus {
+  PENDING
+  ACKNOWLEDGED
+  DISMISSED
+}
+
+model User {
+  id                 String             @id @default(cuid())
+  phone              String             @unique
+  password           String
+  name               String
+  role               UserRole
+  verified           Boolean            @default(false)
+  verificationStatus VerificationStatus @default(PENDING)
+  badgeNumber        String?
+  vehicleNumber      String?
+  pushToken          String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  officerProfile     Officer?
+  trips              Trip[]             @relation("DriverTrips")
+}
+
+model Officer {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  onDuty         Boolean   @default(false)
+  currentLat     Float?
+  currentLng     Float?
+  lastLocationAt DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  alerts         Alert[]
+
+  @@index([onDuty])
+}
+
+model Trip {
+  id             String     @id @default(cuid())
+  driverId       String
+  driver         User       @relation("DriverTrips", fields: [driverId], references: [id])
+  vehicleNumber  String?
+  pickupLat      Float
+  pickupLng      Float
+  pickupAddress  String?
+  dropLat        Float
+  dropLng        Float
+  dropAddress    String?
+  routeGeoJson   String     // Serialized GeoJSON LineString
+  status         TripStatus @default(ACTIVE)
+  currentLat     Float?
+  currentLng     Float?
+  currentSpeed   Float?     // in m/s
+  currentHeading Float?
+  startedAt      DateTime   @default(now())
+  endedAt        DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  alerts         Alert[]
+
+  @@index([status])
+}
+
+model Alert {
+  id             String      @id @default(cuid())
+  tripId         String
+  trip           Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  officerId      String
+  officer        Officer     @relation(fields: [officerId], references: [id], onDelete: Cascade)
+  etaSec         Float
+  distanceAheadM Float
+  status         AlertStatus @default(PENDING)
+  alertedAt      DateTime    @default(now())
+  acknowledgedAt DateTime?
+  dismissedAt    DateTime?
+
+  @@unique([tripId, officerId]) // Exactly one alert per officer per trip
+  @@index([tripId])
+  @@index([officerId])
+}

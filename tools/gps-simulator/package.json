@@ -1,0 +1,19 @@
+{
+  "name": "@raahat/gps-simulator",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@raahat/shared": "workspace:*",
+    "dotenv": "^16.4.7",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

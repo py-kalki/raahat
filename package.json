@@ -1,0 +1,32 @@
+{
+  "name": "raahat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Raahat — Real-time Emergency Green Corridor System",
+  "scripts": {
+    "dev": "concurrently -n \"api,mobile\" -c \"cyan,green\" \"pnpm dev:api\" \"pnpm dev:mobile\"",
+    "dev:api": "pnpm --filter @raahat/api dev",
+    "dev:mobile": "pnpm --filter @raahat/mobile start",
+    "dev:simulator": "pnpm --filter @raahat/gps-simulator start",
+    "build": "pnpm -r --filter=!@raahat/mobile run build",
+    "lint": "pnpm -r run lint",
+    "clean": "pnpm -r run clean"
+  },
+  "keywords": [
+    "emergency-corridor",
+    "real-time",
+    "raahat",
+    "lifelane",
+    "geospatial",
+    "expo",
+    "socket.io"
+  ],
+  "author": "Raahat Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^10.0.6",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}
