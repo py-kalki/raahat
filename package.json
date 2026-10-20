@@ -9,6 +9,8 @@
     "dev:mobile": "pnpm --filter @raahat/mobile start",
     "dev:simulator": "pnpm --filter @raahat/gps-simulator start",
     "build": "pnpm -r --filter=!@raahat/mobile run build",
+    "build:api": "pnpm --filter @raahat/shared build && pnpm --filter @raahat/api build",
+    "start:api": "node apps/api/dist/index.js",
     "lint": "pnpm -r run lint",
     "clean": "pnpm -r run clean"
   },
