@@ -106,8 +106,9 @@ export const CorridorMap: React.FC<CorridorMapProps> = ({
           }).setView([${centerLat}, ${centerLng}], 13);
 
           // 100% free, clean OpenStreetMap tiles (No API key, No watermark)
-          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            subdomains: ['a', 'b', 'c']
           }).addTo(map);
 
           // Route polyline
