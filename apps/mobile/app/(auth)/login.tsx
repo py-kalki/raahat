@@ -42,7 +42,7 @@ export default function LoginScreen() {
     try {
       const user = await login(phone, password);
       if (user.role === 'DRIVER') {
-        router.replace('/driver');
+        router.replace('/home');
       } else if (user.role === 'OFFICER') {
         router.replace('/officer');
       } else if (user.role === 'ADMIN') {
