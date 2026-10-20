@@ -11,17 +11,41 @@ export class PushService {
 
   private initFirebase() {
     try {
-      const serviceAccountPath =
-        process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
-        path.join(__dirname, '../../firebase-service-account.json');
+      let serviceAccount: any = null;
 
-      const resolvedPath = path.isAbsolute(serviceAccountPath)
-        ? serviceAccountPath
-        : path.resolve(process.cwd(), serviceAccountPath);
+      // 1. Direct JSON string from environment variable (ideal for Render/Cloud)
+      if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        try {
+          serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        } catch {
+          console.warn('[PushService] FIREBASE_SERVICE_ACCOUNT env var is not valid JSON string, falling back to file');
+        }
+      }
 
-      if (fs.existsSync(resolvedPath)) {
-        const serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+      // 2. Base64 encoded JSON
+      if (!serviceAccount && process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
+        try {
+          const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString('utf8');
+          serviceAccount = JSON.parse(decoded);
+        } catch {}
+      }
 
+      // 3. File path on disk
+      if (!serviceAccount) {
+        const serviceAccountPath =
+          process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+          path.join(__dirname, '../../firebase-service-account.json');
+
+        const resolvedPath = path.isAbsolute(serviceAccountPath)
+          ? serviceAccountPath
+          : path.resolve(process.cwd(), serviceAccountPath);
+
+        if (fs.existsSync(resolvedPath)) {
+          serviceAccount = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+        }
+      }
+
+      if (serviceAccount) {
         if (!admin.apps.length) {
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
@@ -30,7 +54,7 @@ export class PushService {
         this.initialized = true;
         console.log(`[PushService] Firebase Admin initialized for project: ${serviceAccount.project_id}`);
       } else {
-        console.warn(`[PushService] Firebase service account file not found at: ${resolvedPath}`);
+        console.warn('[PushService] Firebase service account credentials not found. Provide FIREBASE_SERVICE_ACCOUNT env var or firebase-service-account.json file.');
       }
     } catch (error) {
       console.error('[PushService] Failed to initialize Firebase Admin:', error);
