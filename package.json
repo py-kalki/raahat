@@ -9,6 +9,7 @@
     "dev:api": "pnpm --filter @raahat/api dev",
     "dev:mobile": "pnpm --filter @raahat/mobile start",
     "build:android:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-android.ps1",
+    "build:web:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-web-apk.ps1",
     "dev:simulator": "pnpm --filter @raahat/gps-simulator start",
     "build": "pnpm -r --filter=!@raahat/mobile run build",
     "build:api": "pnpm --filter @raahat/shared build && pnpm --filter @raahat/api build",

@@ -1,8 +1,9 @@
 # Render browser demo
 
 The Express service serves the Expo web export and API together. This is a PWA
-opened in Android Chrome, with an optional home-screen install. It does not use
-Metro, Android Studio, or an APK. The existing native build remains separate.
+opened in Android Chrome, with an optional home-screen install. A dedicated
+[hosted Android APK](web-apk.md) opens the same site through a Trusted Web Activity.
+Neither web option needs Metro. The original React Native build remains separate.
 
 ## Existing Render service
 

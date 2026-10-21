@@ -1,0 +1,38 @@
+plugins { id 'com.android.application' }
+
+def signing = new Properties()
+def signingFile = rootProject.file('signing.properties')
+if (signingFile.exists()) signingFile.withInputStream { signing.load(it) }
+
+android {
+    namespace 'com.raahat.web'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.raahat.web'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+    }
+    signingConfigs {
+        release {
+            if (signingFile.exists()) {
+                storeFile rootProject.file(signing['storeFile'])
+                storePassword signing['storePassword']
+                keyAlias signing['keyAlias']
+                keyPassword signing['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release { signingConfig signingConfigs.release; minifyEnabled false }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.3'
+    implementation 'com.google.androidbrowserhelper:locationdelegation:1.1.2'
+}
