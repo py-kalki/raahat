@@ -1,7 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
-import { SOCKET_EVENTS, DriverLocationUpdate, OfficerLocationUpdate, AlertAckInput } from '@raahat/shared';
+import { SOCKET_EVENTS, DriverLocationUpdate, OfficerLocationUpdate, AlertAckInput, DriverLocationUpdateSchema } from '@raahat/shared';
 import { corridorService } from '../services/corridor.service';
 import { alertService } from '../services/alert.service';
 
@@ -56,9 +56,13 @@ export function setupSockets(io: Server) {
     socket.join(`role:${user.role}`);
 
     // DRIVER: streams location every 3-5s
-    socket.on(SOCKET_EVENTS.DRIVER_LOCATION, async (data: DriverLocationUpdate) => {
+    socket.on(SOCKET_EVENTS.DRIVER_LOCATION, async (data: DriverLocationUpdate, reply?: (result: { success: boolean; error?: string }) => void) => {
+      const respond = (result: { success: boolean; error?: string }) => { if (typeof reply === 'function') reply(result); };
       try {
-        if (user.role !== 'DRIVER') return;
+        if (user.role !== 'DRIVER' || !user.verified) { respond({ success: false, error: 'A verified driver account is required.' }); return; }
+        const parsed = DriverLocationUpdateSchema.safeParse(data);
+        if (!parsed.success) { respond({ success: false, error: 'Invalid location data.' }); return; }
+        data = parsed.data;
 
         const { tripId, lat, lng, speed, heading } = data;
 
@@ -75,6 +79,7 @@ export function setupSockets(io: Server) {
         });
 
         if (!trip || trip.status !== 'ACTIVE' || trip.driverId !== user.id) {
+          respond({ success: false, error: 'No active trip owned by this driver.' });
           return;
         }
 
@@ -109,8 +114,7 @@ export function setupSockets(io: Server) {
         );
 
         // 5. Dispatch alerts to newly eligible officers
-        for (const alertInfo of evaluation.newAlerts) {
-          await alertService.dispatchAlert(
+        await Promise.all(evaluation.newAlerts.map(alertInfo => alertService.dispatchAlert(
             tripId,
             alertInfo.officerId,
             alertInfo.userId,
@@ -119,15 +123,16 @@ export function setupSockets(io: Server) {
             trip.vehicleNumber ?? undefined,
             lat,
             lng
-          );
-        }
+          )));
 
         // 6. Dismiss alerts for officers whom the vehicle has passed
         for (const dismissal of evaluation.dismissals) {
           await alertService.dismissAlert(dismissal.alertId, dismissal.userId);
         }
+        respond({ success: true });
       } catch (err) {
         console.error('[Socket] Error handling driver location:', err);
+        respond({ success: false, error: 'Server could not process the location.' });
       }
     });
 

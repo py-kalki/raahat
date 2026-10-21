@@ -54,6 +54,56 @@ Raahat strictly implements the serenity and precision of the editorial glass des
 
 ## 3. Quick Start Guide
 
+### Browser demo on Render (recommended for this demo)
+
+Run `pnpm build:demo`, then `pnpm start:api`. The server now serves the website
+and API together. Android Chrome can install it to the home screen; no APK is
+needed. See [Render setup and two-phone demo steps](docs/web-demo.md) for the
+build command, notification keys, one-time GPS, and simulated trip controls.
+
+### Install a standalone Android APK (Windows / Android Studio)
+
+The red "Could not connect to development server" screen means a **debug**
+build was installed. Debug builds load JavaScript from Metro on port 8081.
+A standalone installation needs the **release** variant, which embeds JavaScript.
+
+1. Install dependencies with `pnpm install` and configure Android Studio's SDK
+   and JDK 17.
+2. Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env.local` to your deployed HTTPS
+   API origin. The mobile project already has a local `.env`; Expo environment
+   precedence applies. Never put server credentials in `EXPO_PUBLIC_*` variables.
+3. From the repository root, run `pnpm build:android:apk`.
+4. Transfer `dist/raahat-release.apk` to the phone and install it. Metro and a
+   USB connection are not needed. Login and live corridor features still need
+   internet access and the backend.
+
+The command builds the shared package, creates Android sources if absent, runs
+`:app:assembleRelease`, and checks for `assets/index.android.bundle` before
+copying the APK. It refreshes JavaScript on each build so environment and shared
+package changes cannot leave an old bundle in the APK. It rejects missing, HTTP, and loopback API origins to avoid
+shipping a standalone build that cannot reach its backend. Rebuild after changing
+the API URL; Expo embeds public environment values at bundle time.
+Metro uses two workers in this workflow to keep memory usage manageable while
+Android Studio and Gradle are running.
+
+In Android Studio, open `apps/mobile/android`, select **release** for the `app`
+module in **Build Variants**, then build the APK. The native output is
+`apps/mobile/android/app/build/outputs/apk/release/app-release.apk`.
+Run `pnpm --filter @raahat/shared build` first and set the mobile environment
+as above. Do not distribute `outputs/apk/debug/app-debug.apk`.
+
+The current native release configuration uses the debug signing key for local
+device testing. Use your own release keystore for public distribution. If Android
+reports a signature mismatch, use the original signing key to preserve app data;
+uninstalling the old app also resolves it but removes its local data.
+
+For deliberate debug development with a USB-connected phone, use
+`pnpm dev:mobile` and `adb reverse tcp:8081 tcp:8081`. This is a development
+workflow, not a standalone APK fix.
+
+References: [Expo local release builds](https://docs.expo.dev/guides/local-app-production/)
+and [Expo APK builds](https://docs.expo.dev/build-reference/apk/).
+
 ### Step 1: Install Dependencies
 ```bash
 pnpm install

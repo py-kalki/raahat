@@ -14,11 +14,13 @@ import { FogBackground } from '../../components/ui/FogBackground';
 import { GlassView } from '../../components/ui/GlassView';
 import { EditorialHeadline } from '../../components/ui/EditorialHeadline';
 import { FloatingNav } from '../../components/ui/FloatingNav';
-import { OfficerAlertModal } from '../../components/ui/OfficerAlertModal';
+
 import { useAuthStore } from '../../store/authStore';
 import { useOfficerStore } from '../../store/officerStore';
 import { socketManager } from '../../lib/socket';
-import { SOCKET_EVENTS, EmergencyAlertPayload } from '@raahat/shared';
+import { api } from '../../lib/api';
+import { requestAndGetCurrentLocation } from '../../lib/location';
+
 import {
   Shield,
   Wifi,
@@ -33,11 +35,14 @@ import {
 export default function OfficerHomeScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  const { onDuty, setOnDuty, activeAlert, setActiveAlert, acknowledgeActiveAlert, isAcknowledging } =
+  const { onDuty, setOnDuty, setActiveAlert, locationRecordedAt } =
     useOfficerStore();
 
+  const [statusMessage, setStatusMessage] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [dutyBusy, setDutyBusy] = useState(false);
   const [currentTab, setCurrentTab] = useState('officer');
-  const [gpsAccuracy, setGpsAccuracy] = useState('High (±4m)');
+  const gpsAccuracy = locationRecordedAt ? (Date.now() - Date.parse(locationRecordedAt) < 30 * 60000 ? 'Post recorded' : 'Refresh location') : 'Not captured';
 
   useEffect(() => {
     // Only officers can access the officer station
@@ -47,31 +52,33 @@ export default function OfficerHomeScreen() {
   }, [user]);
 
   useEffect(() => {
+    if (!user || user.role !== 'OFFICER') return;
     const socket = socketManager.getSocket();
-    if (socket) {
-      socket.on(SOCKET_EVENTS.EMERGENCY_ALERT, (alert: EmergencyAlertPayload) => {
-        setActiveAlert(alert);
-      });
+    const sync = () => {
+      setConnected(!!socket?.connected);
+      api.getMe().then(profile => useOfficerStore.setState({ onDuty: profile.onDuty, locationRecordedAt: profile.lastLocationAt || null })).catch(() => {});
 
-      socket.on(SOCKET_EVENTS.ALERT_DISMISS, () => {
-        setActiveAlert(null);
-      });
-    }
-
-    return () => {
-      if (socket) {
-        socket.off(SOCKET_EVENTS.EMERGENCY_ALERT);
-        socket.off(SOCKET_EVENTS.ALERT_DISMISS);
-      }
     };
-  }, []);
+    sync(); socket?.on('connect', sync);
+    const disconnected = () => setConnected(false);
+    socket?.on('disconnect', disconnected);
+    return () => { socket?.off('connect', sync); socket?.off('disconnect', disconnected); };
+  }, [user?.id]);
 
   const handleToggleDuty = async (val: boolean) => {
+    setDutyBusy(true);
+    setStatusMessage(val ? 'Requesting location — allow browser location access. This can take up to 20 seconds.' : 'Switching duty off…');
     try {
+      const location = val ? await requestAndGetCurrentLocation() : null;
       await setOnDuty(val);
-    } catch (err: any) {
-      Alert.alert('Duty Status Error', err.message || 'Failed to update duty');
-    }
+      if (location) {
+        try { await api.sendOfficerLocation(location.lat, location.lng); }
+        catch (error) { await setOnDuty(false).catch(() => {}); throw error; }
+        useOfficerStore.setState({ locationRecordedAt: new Date().toISOString() });
+      } else useOfficerStore.setState({ locationRecordedAt: null });
+      setStatusMessage(val ? 'Post recorded once. Refresh after moving or after 30 minutes.' : 'Off duty. Location sharing stopped.');
+    } catch (err: any) { setStatusMessage(err.message || 'Failed to update duty'); }
+    finally { setDutyBusy(false); }
   };
 
   const handleTestAlert = () => {
@@ -93,6 +100,7 @@ export default function OfficerHomeScreen() {
     <FogBackground>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {!!statusMessage && <Text accessibilityLiveRegion="polite">{statusMessage}</Text>}
           {/* Greeting Row */}
           <View style={styles.headerRow}>
             <View>
@@ -155,12 +163,12 @@ export default function OfficerHomeScreen() {
                 <Text style={styles.toggleTitle}>Corridor Telemetry</Text>
                 <Text style={styles.toggleSub}>
                   {onDuty
-                    ? 'Broadcasting GPS to incoming ambulances'
+                    ? 'Stationary post recorded for this demo'
                     : 'Location sharing is paused for privacy'}
                 </Text>
               </View>
 
-              <Switch
+              <Switch disabled={dutyBusy}
                 value={onDuty}
                 onValueChange={handleToggleDuty}
                 trackColor={{ false: '#B8C7BE', true: '#4C9A6A' }}
@@ -174,7 +182,7 @@ export default function OfficerHomeScreen() {
             <GlassView radius="md" elevation="1" style={styles.healthCard}>
               <Navigation size={18} color="#3E6B4B" />
               <View>
-                <Text style={styles.healthLabel}>GPS Signal</Text>
+                <Text style={styles.healthLabel}>Saved location</Text>
                 <Text style={styles.healthVal}>{gpsAccuracy}</Text>
               </View>
             </GlassView>
@@ -183,7 +191,7 @@ export default function OfficerHomeScreen() {
               <Wifi size={18} color="#4F7FA6" />
               <View>
                 <Text style={styles.healthLabel}>Socket Sync</Text>
-                <Text style={styles.healthVal}>Connected (Live)</Text>
+                <Text style={styles.healthVal}>{connected ? 'Connected' : 'Disconnected'}</Text>
               </View>
             </GlassView>
           </View>
@@ -244,13 +252,6 @@ export default function OfficerHomeScreen() {
           }}
         />
 
-        {/* Full-Screen Officer Siren Alert Modal */}
-        <OfficerAlertModal
-          visible={!!activeAlert}
-          alert={activeAlert}
-          onAcknowledge={acknowledgeActiveAlert}
-          isAcknowledging={isAcknowledging}
-        />
       </SafeAreaView>
     </FogBackground>
   );

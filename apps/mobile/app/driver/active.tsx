@@ -32,8 +32,7 @@ export default function ActiveTripScreen() {
   const { currentTrip, acknowledgedCount, setAcknowledgedCount, endTrip, cancelTrip, fetchActiveTrip } =
     useTripStore();
 
-  const [simulatedSpeed, setSimulatedSpeed] = useState(54); // km/h
-  const [etaRemaining, setEtaRemaining] = useState(7); // mins
+  const [operationError, setOperationError] = useState('');
   const [isFinishing, setIsFinishing] = useState(false);
 
   useEffect(() => {
@@ -59,12 +58,12 @@ export default function ActiveTripScreen() {
       try {
         if (currentTrip?.id) {
           await endTrip(currentTrip.id);
+          router.replace('/home');
         }
-      } catch (err) {
-        console.warn('Trip end API warning:', err);
+      } catch (err: any) {
+        setOperationError(err.message || 'Could not end the trip. Please retry.');
       } finally {
         setIsFinishing(false);
-        router.replace('/home');
       }
     };
 
@@ -90,12 +89,12 @@ export default function ActiveTripScreen() {
       try {
         if (currentTrip?.id) {
           await cancelTrip(currentTrip.id);
+          router.replace('/home');
         }
-      } catch (err) {
-        console.warn('Trip cancel API warning:', err);
+      } catch (err: any) {
+        setOperationError(err.message || 'Could not cancel the trip. Please retry.');
       } finally {
         setIsFinishing(false);
-        router.replace('/home');
       }
     };
 
@@ -115,22 +114,19 @@ export default function ActiveTripScreen() {
     }
   };
 
-  const officers = [
-    { lat: 28.5672, lng: 77.2100, name: 'AIIMS Ring Road Post', acked: acknowledgedCount >= 1 },
-    { lat: 28.5550, lng: 77.2450, name: 'Safdarjung South Flyover', acked: acknowledgedCount >= 2 },
-    { lat: 28.5450, lng: 77.2700, name: 'Lajpat Nagar Intersection', acked: acknowledgedCount >= 3 },
-  ];
+  const officers: Array<{ lat: number; lng: number; name?: string; acked?: boolean }> = [];
 
   return (
     <FogBackground>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          {Platform.OS === 'web' && <PillButton label="Open demo simulation controls" onPress={() => router.push('/demo')} />}
           {/* Top Status Header */}
           <GlassView radius="lg" elevation="3" style={styles.statusHeader}>
             <View style={styles.statusTopRow}>
               <View style={styles.liveIndicator}>
                 <Radio size={14} color="#C8503F" />
-                <Text style={styles.liveText}>CORRIDOR BROADCASTING</Text>
+                <Text style={styles.liveText}>DEMO TRIP ACTIVE</Text>
               </View>
               <Text style={styles.vehicleId}>
                 {currentTrip?.vehicleNumber || 'DL-01-AMB-108'}
@@ -155,10 +151,10 @@ export default function ActiveTripScreen() {
                 <Text style={styles.ackCountText}>
                   {acknowledgedCount > 0
                     ? `${acknowledgedCount} Police Junctions Cleared Ahead`
-                    : 'Broadcasting to Officers within 4 min Horizon'}
+                    : 'Waiting for officer acknowledgements'}
                 </Text>
                 <Text style={styles.ackSubText}>
-                  Automatic siren alerts triggered on approach
+                  Use Demo setup to send simulated route positions
                 </Text>
               </View>
             </View>
@@ -168,19 +164,19 @@ export default function ActiveTripScreen() {
           <View style={styles.matrixRow}>
             <GlassView radius="md" elevation="1" style={styles.matrixCard}>
               <Gauge size={18} color="#1F3A2A" />
-              <Text style={styles.matrixValue}>{simulatedSpeed} km/h</Text>
-              <Text style={styles.matrixLabel}>Speed</Text>
+              <Text style={styles.matrixValue}>{currentTrip?.currentSpeed != null ? `${Math.round(currentTrip.currentSpeed * 3.6)} km/h` : '—'}</Text>
+              <Text style={styles.matrixLabel}>Last reported speed</Text>
             </GlassView>
 
             <GlassView radius="md" elevation="1" style={styles.matrixCard}>
               <Clock size={18} color="#3E6B4B" />
-              <Text style={styles.matrixValue}>{etaRemaining} min</Text>
+              <Text style={styles.matrixValue}>—</Text>
               <Text style={styles.matrixLabel}>Trauma ETA</Text>
             </GlassView>
 
             <GlassView radius="md" elevation="1" style={styles.matrixCard}>
               <Navigation size={18} color="#6F9A78" />
-              <Text style={styles.matrixValue}>5.4 km</Text>
+              <Text style={styles.matrixValue}>—</Text>
               <Text style={styles.matrixLabel}>Distance</Text>
             </GlassView>
           </View>
@@ -188,8 +184,8 @@ export default function ActiveTripScreen() {
           {/* Real-Looking Interactive Street Map */}
           <View style={styles.mapBox}>
             <CorridorMap
-              ambulanceLat={currentTrip?.currentLat || 28.5450}
-              ambulanceLng={currentTrip?.currentLng || 77.2700}
+              ambulanceLat={currentTrip?.currentLat ?? currentTrip?.pickupLat}
+              ambulanceLng={currentTrip?.currentLng ?? currentTrip?.pickupLng}
               routeCoordinates={currentTrip?.route?.coordinates || []}
               officers={officers}
               height={320}
@@ -198,6 +194,7 @@ export default function ActiveTripScreen() {
 
           {/* Action CTAs */}
           <View style={styles.actionsBox}>
+            {!!operationError && <Text style={{ color: '#C8503F' }}>{operationError}</Text>}
             <PillButton
               label={isFinishing ? 'Completing Mission...' : 'Arrived at Hospital — End Trip'}
               loading={isFinishing}

@@ -130,6 +130,7 @@ authRouter.post(
           badgeNumber: user.badgeNumber,
           vehicleNumber: user.vehicleNumber,
           onDuty: user.officerProfile?.onDuty ?? false,
+        lastLocationAt: user.officerProfile?.lastLocationAt ?? null,
           createdAt: user.createdAt,
         },
       });
@@ -168,6 +169,7 @@ authRouter.get(
         badgeNumber: user.badgeNumber,
         vehicleNumber: user.vehicleNumber,
         onDuty: user.officerProfile?.onDuty ?? false,
+        lastLocationAt: user.officerProfile?.lastLocationAt ?? null,
         createdAt: user.createdAt,
       });
     } catch (error) {

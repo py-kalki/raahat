@@ -34,6 +34,8 @@ export default function IndexScreen() {
     if (user) {
       if (user.role === 'OFFICER') {
         router.replace('/officer');
+      } else if (user.role === 'ADMIN') {
+        router.replace('/admin/map');
       } else {
         router.replace('/home');
       }
@@ -53,14 +55,13 @@ export default function IndexScreen() {
 
   const handleLogin = async () => {
     try {
-      // 1. Request real location permission on login
-      await requestAndGetCurrentLocation();
-
       // 2. Perform authentication
       const loggedUser = await login(phone, password);
 
       // 3. Navigate directly to role-specific dashboard
-      if (loggedUser.role === 'OFFICER') {
+      if (loggedUser.role === 'ADMIN') {
+        router.replace('/admin/map');
+      } else if (loggedUser.role === 'OFFICER') {
         router.replace('/officer');
       } else {
         router.replace('/home');
@@ -151,7 +152,7 @@ export default function IndexScreen() {
               <View style={styles.securityNote}>
                 <ShieldCheck size={14} color="#6F9A78" />
                 <Text style={styles.securityNoteText}>
-                  Location access requested on deployment for live corridor sync
+                  Use Demo setup after signing in to enable location and notifications
                 </Text>
               </View>
             </GlassView>

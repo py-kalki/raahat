@@ -37,12 +37,14 @@ export default function HomeScreen() {
   const { currentTrip, fetchActiveTrip } = useTripStore();
 
   const [currentTab, setCurrentTab] = useState('home');
+  const [locationError, setLocationError] = useState('');
   const [location, setLocation] = useState<UserLocation | null>(null);
   const [loadingLoc, setLoadingLoc] = useState(true);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loadingHospitals, setLoadingHospitals] = useState(true);
 
   useEffect(() => {
+    if (!user || user.role === 'ADMIN') return;
     // If an officer accesses /home, redirect to their dedicated Officer Guard Station
     if (user?.role === 'OFFICER') {
       router.replace('/officer');
@@ -52,6 +54,7 @@ export default function HomeScreen() {
     // 1. Fetch real GPS location and dynamically search nearest hospitals
     (async () => {
       setLoadingLoc(true);
+      try {
       const loc = await requestAndGetCurrentLocation();
       setLocation(loc);
       setLoadingLoc(false);
@@ -63,6 +66,12 @@ export default function HomeScreen() {
       } catch (err) {
         console.warn('Error discovering nearby hospitals:', err);
       } finally {
+        setLoadingHospitals(false);
+      }
+      } catch (error: any) {
+        setLocationError(error.message || 'Location unavailable. Open Demo setup to retry.');
+      } finally {
+        setLoadingLoc(false);
         setLoadingHospitals(false);
       }
     })();
@@ -104,7 +113,7 @@ export default function HomeScreen() {
             <View style={styles.gpsTopRow}>
               <View style={styles.gpsStatusIndicator}>
                 <Radio size={14} color="#4C9A6A" />
-                <Text style={styles.gpsStatusText}>LIVE GPS FIX</Text>
+                <Text style={styles.gpsStatusText}>ONE-TIME LOCATION</Text>
               </View>
               {loadingLoc ? (
                 <ActivityIndicator size="small" color="#1F3A2A" />
@@ -117,7 +126,7 @@ export default function HomeScreen() {
             <View style={styles.gpsAddressRow}>
               <MapPin size={16} color="#3E6B4B" />
               <Text style={styles.gpsAddressText} numberOfLines={1}>
-                {location?.address || 'Acquiring high-accuracy location...'}
+                {locationError || location?.address || 'Acquiring location...'}
               </Text>
             </View>
           </GlassView>

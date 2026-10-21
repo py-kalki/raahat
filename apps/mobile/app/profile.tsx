@@ -38,15 +38,17 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     (async () => {
-      const loc = await requestAndGetCurrentLocation();
-      setLocation(loc);
+      try { const loc = await requestAndGetCurrentLocation(); setLocation(loc); }
+      catch { setLocation(null); }
     })();
   }, []);
 
   const handleSwitchPersona = async (phoneNum: string) => {
     try {
       const newUser = await login(phoneNum, 'password123');
-      if (newUser.role === 'OFFICER') {
+      if (newUser.role === 'ADMIN') {
+        router.replace('/admin/map');
+      } else if (newUser.role === 'OFFICER') {
         router.replace('/officer');
       } else {
         router.replace('/home');

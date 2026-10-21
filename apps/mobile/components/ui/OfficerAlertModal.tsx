@@ -13,8 +13,9 @@ import { EmergencyAlertPayload } from '@raahat/shared';
 export interface OfficerAlertModalProps {
   visible: boolean;
   alert: EmergencyAlertPayload | null;
-  onAcknowledge: () => void;
+  onAcknowledge: () => void | Promise<void>;
   isAcknowledging?: boolean;
+  onDismiss?: () => void;
 }
 
 export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
@@ -22,15 +23,18 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
   alert,
   onAcknowledge,
   isAcknowledging = false,
+  onDismiss,
 }) => {
   const [remainingSec, setRemainingSec] = useState<number>(0);
   const [isAcked, setIsAcked] = useState<boolean>(false);
+  const [error, setError] = useState('');
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (alert) {
       setRemainingSec(alert.etaSec);
       setIsAcked(false);
+      setError('');
     }
   }, [alert]);
 
@@ -46,7 +50,7 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
   // Pulse animation for siren badge
   useEffect(() => {
     if (visible && !isAcked) {
-      Animated.loop(
+      const animation = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
             toValue: 1.15,
@@ -59,7 +63,9 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
             useNativeDriver: true,
           }),
         ])
-      ).start();
+      );
+      animation.start();
+      return () => animation.stop();
     }
   }, [visible, isAcked]);
 
@@ -69,9 +75,9 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
   const secs = remainingSec % 60;
   const timeFormatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 
-  const handleAck = () => {
-    setIsAcked(true);
-    onAcknowledge();
+  const handleAck = async () => {
+    try { await onAcknowledge(); setIsAcked(true); setError(''); }
+    catch (err: any) { setError(err.message || 'Acknowledgement failed. Try again.'); }
   };
 
   return (
@@ -121,6 +127,8 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
         </View>
 
         <View style={styles.footer}>
+          {isAcked && onDismiss && <Pressable onPress={onDismiss} style={styles.ackButton}><Text style={styles.ackButtonText}>Back to station</Text></Pressable>}
+          {!!error && <Text style={{ color: '#FFFFFF', marginBottom: 12 }}>{error}</Text>}
           {!isAcked ? (
             <Pressable
               onPress={handleAck}
@@ -135,7 +143,7 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
             <View style={styles.acknowledgedBox}>
               <CheckCircle size={20} color="#4C9A6A" />
               <Text style={styles.acknowledgedText}>
-                Driver & Central Control Notified
+                {alert.alertId.startsWith('demo-') ? 'Demo preview acknowledged' : 'Driver & Central Control Notified'}
               </Text>
             </View>
           )}

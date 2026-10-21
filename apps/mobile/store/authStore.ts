@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import { api } from '../lib/api';
 import { socketManager } from '../lib/socket';
-import { registerForPushNotificationsAsync } from '../lib/notifications';
+import { registerForPushNotificationsAsync, unregisterPushNotificationsAsync } from '../lib/notifications';
+
+import { useOfficerStore } from './officerStore';
+import { useTripStore } from './tripStore';
+
+function resetRoleState() {
+  useOfficerStore.setState({ onDuty: false, locationRecordedAt: null, activeAlert: null, isAcknowledging: false });
+  useTripStore.getState().resetTrip();
+}
 
 export interface User {
   id: string;
@@ -36,6 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await api.login(phone, password);
+      resetRoleState();
       set({ user: data.user, token: data.token, isLoading: false });
       socketManager.connect(data.token);
       registerForPushNotificationsAsync().catch(() => {});
@@ -50,6 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await api.register(formData);
+      resetRoleState();
       set({ user: data.user, token: data.token, isLoading: false });
       socketManager.connect(data.token);
       registerForPushNotificationsAsync().catch(() => {});
@@ -60,6 +70,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    unregisterPushNotificationsAsync().catch(() => {});
+    resetRoleState();
     api.setToken(null);
     socketManager.disconnect();
     set({ user: null, token: null, error: null });

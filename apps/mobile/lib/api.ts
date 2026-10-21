@@ -1,4 +1,9 @@
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+import { Platform } from 'react-native';
+
+// The hosted PWA uses the API served by the same Render service.
+const API_BASE = Platform.OS === 'web' && typeof window !== 'undefined'
+  ? `${window.location.origin}/api`
+  : process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
 
 class ApiClient {
   private token: string | null = null;
@@ -11,7 +16,7 @@ class ApiClient {
     return this.token;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
@@ -21,9 +26,13 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
+      signal: controller.signal,
     });
 
     const data = await response.json().catch(() => ({}));
@@ -33,6 +42,10 @@ class ApiClient {
     }
 
     return data as T;
+    } catch (error: any) {
+      if (error.name === 'AbortError') throw new Error('The server took too long to respond. Please try again.');
+      throw error;
+    } finally { clearTimeout(timeout); }
   }
 
   // Auth

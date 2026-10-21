@@ -64,24 +64,19 @@ export class AlertService {
         this.io.to('role:ADMIN').emit(SOCKET_EVENTS.EMERGENCY_ALERT, payload);
       }
 
-      // 3. Trigger high-priority push notification if token exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { pushToken: true },
-      });
+      // A slow push provider must never hold up live alerts or driver updates.
+      void this.deliverPush(userId, {
+        tripId, alertId: alert.id, etaSec, distanceAheadM, message,
+      }).catch(error => console.warn('[AlertService] Push failed:', error.name));
 
-      if (user?.pushToken) {
-        await pushService.sendEmergencyPush(user.pushToken, {
-          tripId,
-          alertId: alert.id,
-          etaSec,
-          distanceAheadM,
-          message,
-        });
-      }
     } catch (error) {
       console.error('[AlertService] Error dispatching alert:', error);
     }
+  }
+
+  private async deliverPush(userId: string, payload: Parameters<typeof pushService.sendEmergencyPush>[1]) {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { pushToken: true } });
+    if (user?.pushToken) await pushService.sendEmergencyPush(user.pushToken, payload);
   }
 
   /**

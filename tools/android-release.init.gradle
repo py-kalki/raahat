@@ -1,0 +1,12 @@
+// React Native's bundle inputs omit .env files and workspace packages outside
+// the mobile root. Always refresh JavaScript for a distributable APK, while
+// retaining Gradle's incremental compilation for native dependencies.
+gradle.projectsEvaluated {
+    def app = rootProject.findProject(':app')
+    if (app == null) return // Included Gradle plugin builds have no app module.
+    app.tasks.matching { it.name == 'createBundleReleaseJsAndAssets' }.configureEach {
+        outputs.upToDateWhen { false }
+        // Keep Metro from exhausting RAM alongside Android Studio and Gradle.
+        extraPackagerArgs.addAll(['--max-workers', '2'])
+    }
+}

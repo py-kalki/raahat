@@ -4,6 +4,7 @@ import { EmergencyAlertPayload } from '@raahat/shared';
 
 export interface OfficerState {
   onDuty: boolean;
+  locationRecordedAt: string | null;
   activeAlert: EmergencyAlertPayload | null;
   isAcknowledging: boolean;
   setOnDuty: (onDuty: boolean) => Promise<void>;
@@ -13,13 +14,14 @@ export interface OfficerState {
 
 export const useOfficerStore = create<OfficerState>((set, get) => ({
   onDuty: false,
+  locationRecordedAt: null,
   activeAlert: null,
   isAcknowledging: false,
 
   setOnDuty: async (onDuty: boolean) => {
     try {
       await api.setDutyStatus(onDuty);
-      set({ onDuty });
+      set(onDuty ? { onDuty } : { onDuty, locationRecordedAt: null });
     } catch (err) {
       console.error('Failed to toggle duty:', err);
       throw err;
@@ -31,6 +33,7 @@ export const useOfficerStore = create<OfficerState>((set, get) => ({
   acknowledgeActiveAlert: async () => {
     const alert = get().activeAlert;
     if (!alert) return;
+    if (alert.alertId.startsWith('demo-')) return;
 
     set({ isAcknowledging: true });
     try {

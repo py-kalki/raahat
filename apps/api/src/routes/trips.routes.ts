@@ -70,8 +70,7 @@ tripsRouter.post(
           pickup.lng,
           15
         );
-        for (const alertInfo of evaluation.newAlerts) {
-          await alertService.dispatchAlert(
+        await Promise.all(evaluation.newAlerts.map(alertInfo => alertService.dispatchAlert(
             trip.id,
             alertInfo.officerId,
             alertInfo.userId,
@@ -80,8 +79,7 @@ tripsRouter.post(
             trip.vehicleNumber ?? undefined,
             pickup.lat,
             pickup.lng
-          );
-        }
+          )));
       } catch (alertErr) {
         console.warn('[TripsRouter] Immediate corridor evaluation warning:', alertErr);
       }

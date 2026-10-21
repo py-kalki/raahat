@@ -36,3 +36,5 @@ prisma/*.db-journal
 android/
 ios/
 *.orig.*
+*.apk
+*.aab

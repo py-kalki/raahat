@@ -10,6 +10,23 @@ export const officersRouter = Router();
 // Protect all officer routes
 officersRouter.use(authenticateJwt);
 
+officersRouter.get('/alerts/active', requireRoles(['OFFICER']), requireVerified, async (req, res) => {
+  try {
+    const alerts = await prisma.alert.findMany({
+      where: { officer: { userId: req.user!.id }, status: 'PENDING', trip: { status: 'ACTIVE' } },
+      include: { trip: true }, orderBy: { alertedAt: 'desc' }, take: 20,
+    });
+    res.json(alerts.map(alert => ({
+      alertId: alert.id, tripId: alert.tripId, officerId: alert.officerId,
+      etaSec: Math.max(0, alert.etaSec - (Date.now() - alert.alertedAt.getTime()) / 1000),
+      distanceAheadM: alert.distanceAheadM, vehicleNumber: alert.trip.vehicleNumber || 'Ambulance',
+      message: 'Pending corridor alert — check the approaching ambulance.',
+      ambulanceLat: alert.trip.currentLat ?? alert.trip.pickupLat,
+      ambulanceLng: alert.trip.currentLng ?? alert.trip.pickupLng,
+    })));
+  } catch { res.status(500).json({ error: 'Could not load pending alerts.' }); }
+});
+
 /**
  * Toggle On/Off Duty
  */

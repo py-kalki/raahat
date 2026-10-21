@@ -25,27 +25,13 @@ export const CorridorMap: React.FC<CorridorMapProps> = ({
     if (routeCoordinates && routeCoordinates.length > 0) {
       return routeCoordinates.map(([lng, lat]) => [lat, lng]);
     }
-    // Default Delhi corridor polyline if not provided
-    return [
-      [28.5355, 77.2882],
-      [28.5420, 77.2750],
-      [28.5510, 77.2550],
-      [28.5600, 77.2350],
-      [28.5672, 77.2100],
-    ];
+    return [];
   }, [routeCoordinates]);
 
   // Leaflet HTML template with CartoDB Positron (high-res muted real road map)
   const mapHtml = useMemo(() => {
     const polylineJson = JSON.stringify(polylineLatLngs);
-    const officersJson = JSON.stringify(
-      officers.length > 0
-        ? officers
-        : [
-            { lat: 28.5450, lng: 77.2700, name: 'Ring Road Post 1', acked: true },
-            { lat: 28.5550, lng: 77.2450, name: 'Junction 2 (Flyover)', acked: false },
-          ]
-    );
+    const officersJson = JSON.stringify(officers).replace(/</g, '\\u003c');
 
     return `
       <!DOCTYPE html>
@@ -93,7 +79,7 @@ export const CorridorMap: React.FC<CorridorMapProps> = ({
             font-weight: bold;
             border: 2px solid #FFFFFF;
           }
-          .leaflet-control-attribution { display: none !important; }
+
         </style>
       </head>
       <body>
@@ -102,13 +88,14 @@ export const CorridorMap: React.FC<CorridorMapProps> = ({
         <script>
           const map = L.map('map', {
             zoomControl: false,
-            attributionControl: false
+            attributionControl: true
           }).setView([${centerLat}, ${centerLng}], 13);
 
           // 100% free, clean OpenStreetMap tiles (No API key, No watermark)
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: ['a', 'b', 'c']
+            subdomains: ['a', 'b', 'c'],
+            attribution: '&copy; OpenStreetMap contributors'
           }).addTo(map);
 
           // Route polyline
@@ -140,7 +127,7 @@ export const CorridorMap: React.FC<CorridorMapProps> = ({
             const isAcked = off.acked !== false;
             const icon = L.divIcon({
               className: 'officer-marker',
-              html: '<div class="police-pin ' + (isAcked ? '' : 'pending') + '" title="' + (off.name || 'Officer') + '"></div>',
+              html: '<div class="police-pin ' + (isAcked ? '' : 'pending') + '"></div>',
               iconSize: [16, 16],
               iconAnchor: [8, 8]
             });

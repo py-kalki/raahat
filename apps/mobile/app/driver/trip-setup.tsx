@@ -43,6 +43,8 @@ export default function TripSetupScreen() {
 
   const { createTrip, isLoading } = useTripStore();
   const [isLocating, setIsLocating] = useState(false);
+  const [locationReady, setLocationReady] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [loadingHospitals, setLoadingHospitals] = useState(true);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +65,8 @@ export default function TripSetupScreen() {
 
   const fetchLiveGPS = async () => {
     setIsLocating(true);
+    setLocationReady(false);
+    setLocationError('');
     setLoadingHospitals(true);
     try {
       const loc = await requestAndGetCurrentLocation();
@@ -91,21 +95,10 @@ export default function TripSetupScreen() {
           lng: nearby[0].lng,
         });
       }
-    } catch {
-      setPickup({
-        name: 'Apollo Emergency Center (Sarita Vihar)',
-        lat: 28.5355,
-        lng: 77.2882,
-      });
-      const fallback = await getNearestHospitals(28.5355, 77.2882);
-      setHospitals(fallback);
-      if (fallback.length > 0 && !params.hospName) {
-        setDrop({
-          name: fallback[0].name,
-          lat: fallback[0].lat,
-          lng: fallback[0].lng,
-        });
-      }
+      setLocationReady(true);
+    } catch (error: any) {
+      setLocationError(error.message || 'Could not get your location. Allow location access and retry.');
+      setPickup({ name: 'Location unavailable — tap Refresh GPS', lat: 0, lng: 0 });
     } finally {
       setIsLocating(false);
       setLoadingHospitals(false);
@@ -134,6 +127,7 @@ export default function TripSetupScreen() {
   };
 
   const handleStartTrip = async () => {
+    if (!locationReady || isLocating || !drop.name || hospitals.length === 0 && !params.hospName) return;
     try {
       await createTrip(
         { lat: pickup.lat, lng: pickup.lng, address: pickup.name },
@@ -323,8 +317,8 @@ export default function TripSetupScreen() {
             <View style={styles.summaryItem}>
               <Shield size={20} color="#6F9A78" />
               <View>
-                <Text style={styles.summaryValue}>5 Police Posts</Text>
-                <Text style={styles.summarySub}>On-duty along route</Text>
+                <Text style={styles.summaryValue}>Demo corridor</Text>
+                <Text style={styles.summarySub}>Availability varies by route</Text>
               </View>
             </View>
             <View style={styles.summaryItem}>
@@ -336,11 +330,13 @@ export default function TripSetupScreen() {
             </View>
           </GlassView>
 
+          {locationError ? <Text style={{ color: '#C8503F', marginBottom: 12 }}>{locationError}</Text> : null}
           {/* Primary CTA */}
           <View style={styles.ctaBox}>
             <PillButton
               label="Launch Emergency Corridor"
               loading={isLoading}
+              disabled={!locationReady || isLocating || (hospitals.length === 0 && !params.hospName)}
               onPress={handleStartTrip}
             />
           </View>

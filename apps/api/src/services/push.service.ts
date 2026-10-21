@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as admin from 'firebase-admin';
+import { sendWebPush } from './web-push.service';
 
 export class PushService {
   private initialized = false;
@@ -75,6 +76,9 @@ export class PushService {
     }
   ): Promise<boolean> {
     if (!pushToken) return false;
+    if (pushToken.startsWith('webpush:')) {
+      return sendWebPush(pushToken, { title: 'Raahat — corridor approaching', body: payload.message, alertId: payload.alertId });
+    }
 
     // 1. If it's an Expo push token (ExponentPushToken[...]), deliver via Expo Push API
     if (pushToken.startsWith('ExponentPushToken') || pushToken.startsWith('ExpoPushToken')) {
@@ -144,8 +148,8 @@ export class PushService {
       }
     }
 
-    console.log(`[PushService] Telemetry simulated for token: ${pushToken}`);
-    return true;
+    console.warn('[PushService] No delivery provider configured for this token.');
+    return false;
   }
 }
 

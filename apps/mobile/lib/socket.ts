@@ -5,11 +5,9 @@ class SocketManager {
   private socket: Socket | null = null;
 
   connect(token: string): Socket {
-    if (this.socket?.connected) {
-      return this.socket;
-    }
+    this.disconnect();
 
-    this.socket = io(API_BASE, {
+    this.socket = io(API_BASE.replace(/\/api$/, ''), {
       auth: { token },
       transports: ['websocket'],
       autoConnect: true,

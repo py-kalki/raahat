@@ -8,12 +8,16 @@
     "dev": "concurrently -n \"api,mobile\" -c \"cyan,green\" \"pnpm dev:api\" \"pnpm dev:mobile\"",
     "dev:api": "pnpm --filter @raahat/api dev",
     "dev:mobile": "pnpm --filter @raahat/mobile start",
+    "build:android:apk": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-android.ps1",
     "dev:simulator": "pnpm --filter @raahat/gps-simulator start",
     "build": "pnpm -r --filter=!@raahat/mobile run build",
     "build:api": "pnpm --filter @raahat/shared build && pnpm --filter @raahat/api build",
-    "start:api": "node apps/api/dist/index.js",
+    "start:api": "pnpm --filter @raahat/api start",
     "lint": "pnpm -r run lint",
-    "clean": "pnpm -r run clean"
+    "clean": "pnpm -r run clean",
+    "build:web": "pnpm --filter @raahat/shared build && pnpm --filter @raahat/mobile build:web && node tools/prepare-web.cjs",
+    "build:demo": "pnpm build:api",
+    "push:keys": "pnpm --filter @raahat/api exec web-push generate-vapid-keys --json"
   },
   "keywords": [
     "emergency-corridor",
@@ -28,7 +32,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "babel-preset-expo": "~12.0.12",
     "concurrently": "^10.0.6",
+    "expo-asset": "^11.0.5",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2"
   }
