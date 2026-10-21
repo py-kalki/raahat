@@ -12,7 +12,13 @@ export function legacyApi(router: Router): express.RequestHandler {
 
 export function serveWebApp(app: Express, directory = path.resolve(__dirname, '../../mobile/dist')) {
   if (!fs.existsSync(path.join(directory, 'index.html'))) return;
+  // Express hides dot-directories by default. Expose only the Android trust file.
+  app.get('/.well-known/assetlinks.json', (_req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.sendFile(path.join(directory, '.well-known/assetlinks.json'), { dotfiles: 'allow' });
+  });
   app.use(express.static(directory, {
+    dotfiles: 'ignore',
     setHeaders(res, file) {
       if (/\.(html|webmanifest)$/.test(file) || /[\\/](sw|pwa)\.js$/.test(file)) res.setHeader('Cache-Control', 'no-cache');
       if (file.endsWith('sw.js')) res.setHeader('Service-Worker-Allowed', '/');

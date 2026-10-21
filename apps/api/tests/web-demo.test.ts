@@ -114,6 +114,9 @@ test('SPA deep links do not shadow JSON APIs or missing assets', async t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'raahat-web-test-'));
   fs.writeFileSync(path.join(directory, 'index.html'), '<html>Raahat demo</html>');
   fs.writeFileSync(path.join(directory, 'sw.js'), '// worker');
+  fs.mkdirSync(path.join(directory, '.well-known'));
+  fs.writeFileSync(path.join(directory, '.well-known/assetlinks.json'), '[{"relation":["delegate_permission/common.handle_all_urls"]}]');
+  fs.writeFileSync(path.join(directory, '.well-known/private.txt'), 'hidden');
   const app = express(), router = express.Router();
   router.get('/', (_req, res) => { res.status(401).json({ error: 'Authentication required' }); });
   app.use('/api/trips', router);
@@ -131,6 +134,11 @@ test('SPA deep links do not shadow JSON APIs or missing assets', async t => {
   assert.equal((await fetch(base + '/api/trips')).status, 401);
   assert.equal((await fetch(base + '/trips', { headers: { Accept: 'application/json' } })).status, 401);
   assert.equal((await fetch(base + '/missing.js')).status, 404);
+  const trust = await fetch(base + '/.well-known/assetlinks.json');
+  assert.equal(trust.status, 200);
+  assert.match(trust.headers.get('content-type') || '', /application\/json/);
+  assert.equal((await trust.json())[0].relation[0], 'delegate_permission/common.handle_all_urls');
+  assert.equal((await fetch(base + '/.well-known/private.txt')).status, 404);
   const worker = await fetch(base + '/sw.js');
   assert.equal(worker.headers.get('cache-control'), 'no-cache');
   assert.equal(worker.headers.get('service-worker-allowed'), '/');

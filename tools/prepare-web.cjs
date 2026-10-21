@@ -1,6 +1,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const mobile = path.resolve(__dirname, '../apps/mobile');
+const trustFile = path.join(mobile, 'public/.well-known/assetlinks.json');
+if (fs.existsSync(trustFile)) {
+  fs.mkdirSync(path.join(mobile, 'dist/.well-known'), { recursive: true });
+  fs.copyFileSync(trustFile, path.join(mobile, 'dist/.well-known/assetlinks.json'));
+}
 const htmlPath = path.join(mobile, 'dist/index.html');
 let html = fs.readFileSync(htmlPath, 'utf8');
 html = html.replace(/<title>.*?<\/title>/, '<title>Raahat — Corridor Demo</title>');

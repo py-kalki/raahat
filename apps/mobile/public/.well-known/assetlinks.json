@@ -1,0 +1,14 @@
+[
+    {
+        "target":  {
+                       "sha256_cert_fingerprints":  [
+                                                        "20:09:06:47:A2:1F:CE:E5:FB:CA:03:AD:80:02:A8:19:70:15:64:C3:5B:0A:86:9B:E6:6B:95:3B:44:C8:6A:97"
+                                                    ],
+                       "namespace":  "android_app",
+                       "package_name":  "com.raahat.web"
+                   },
+        "relation":  [
+                         "delegate_permission/common.handle_all_urls"
+                     ]
+    }
+]
