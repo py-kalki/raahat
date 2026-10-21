@@ -6,6 +6,14 @@ and uses the deployed website, with no Metro or bundled React Native runtime.
 It can coexist with the older `com.raahat.app` APK. Internet and an up-to-date
 TWA-capable browser (recommended: Chrome) are required.
 
+Version 1.0.1 is labelled **Raahat Web** and uses a persistent native entry screen.
+It attempts a verified browser session once, keeps an Open Raahat button available,
+and displays launch errors or a five-second browser timeout. Open in browser
+explicitly chooses an external browser, avoiding a deep-link loop back into the
+APK. Returning or restoring the screen does not automatically relaunch it.
+This replaces the library's translucent launcher. The reported Infinix Android 15
+crash has no device stack trace, so its exact original cause is not confirmed.
+
 ## Build
 
 Open `apps/web-apk` in Android Studio, or run from the repository root:
@@ -16,8 +24,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-web-apk.ps1
 
 Requires Java 17 and Android SDK 36. Set `ANDROID_HOME` to your SDK location or
 create `apps/web-apk/local.properties` with `sdk.dir` pointing at it.
-The script generates a unique signing key once, builds a signed release APK,
-runs Android lint, and copies it to `dist/raahat-web-release.apk`.
+The script generates a unique signing key once, runs Android 15 Robolectric startup
+tests and Android lint, builds a signed release APK, verifies its signature against
+the website association, and copies it to `dist/raahat-web-release.apk`.
 Keep `apps/web-apk/raahat-release.jks` and `signing.properties` backed up privately.
 They are ignored by Git. Future APK updates require the same signing key and a
 higher versionCode in `app/build.gradle`. Do not regenerate the key for updates.

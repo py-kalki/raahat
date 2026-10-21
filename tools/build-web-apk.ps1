@@ -39,7 +39,7 @@ $assetLinks = @(@{
 
 Push-Location $project
 try {
-    & ./gradlew.bat :app:assembleRelease :app:lintRelease --console=plain
+    & ./gradlew.bat :app:testReleaseUnitTest :app:assembleRelease :app:lintRelease --console=plain
     if ($LASTEXITCODE -ne 0) { throw 'APK build or Android lint failed.' }
 } finally { Pop-Location }
 

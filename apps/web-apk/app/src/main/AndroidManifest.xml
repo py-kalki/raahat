@@ -3,9 +3,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application android:label="@string/app_name" android:icon="@drawable/app_icon"
         android:allowBackup="false" android:usesCleartextTraffic="false"
-        android:theme="@android:style/Theme.Translucent.NoTitleBar">
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
-        <activity android:name="com.google.androidbrowserhelper.trusted.LauncherActivity" android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="https://raahat-n1e2.onrender.com/" />
             <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:resource="@color/brand" />
             <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:resource="@color/brand" />
