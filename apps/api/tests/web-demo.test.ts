@@ -18,7 +18,13 @@ import { setupSockets } from '../src/sockets';
 import { alertService } from '../src/services/alert.service';
 import { pushService } from '../src/services/push.service';
 import { getBrowserPosition } from '../../mobile/lib/browser-location';
+import { withBrowserTimeout } from '../../mobile/lib/browser-timeout';
 const { io: connectSocket } = createRequire(path.resolve(__dirname, '../../mobile/package.json'))('socket.io-client');
+
+test('unresponsive browser permission promises fail visibly instead of hanging', async () => {
+  assert.equal(await withBrowserTimeout(Promise.resolve('granted'), 'Timed out', 10), 'granted');
+  await assert.rejects(withBrowserTimeout(new Promise(() => {}), 'Use Chrome or Edge', 5), /Use Chrome or Edge/);
+});
 
 test('GPS falls back to network positioning without fabricating a position', async () => {
   const requested: boolean[] = [];

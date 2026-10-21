@@ -1,9 +1,10 @@
 import { api } from './api';
+import { withBrowserTimeout } from './browser-timeout';
 
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || !window.isSecureContext) return null;
-  await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-  return navigator.serviceWorker.ready;
+  await withBrowserTimeout(navigator.serviceWorker.register('/sw.js', { scope: '/' }), 'Notification worker did not register. Reload in Chrome or Edge.');
+  return withBrowserTimeout(navigator.serviceWorker.ready, 'Notification worker did not start. Open the app in Chrome or Edge.', 10000);
 }
 
 // Permission is requested only from the explicit Enable notifications button.
@@ -19,7 +20,7 @@ export async function enableWebPush() {
   if (!('PushManager' in window) || !('Notification' in window) || !window.isSecureContext) {
     throw new Error('Open this HTTPS website in Android Chrome to enable notifications.');
   }
-  const permission = await Notification.requestPermission();
+  const permission = await withBrowserTimeout(Notification.requestPermission(), 'The browser did not answer the notification permission request. Open this address in Chrome or Edge and allow notifications.');
   if (permission !== 'granted') throw new Error('Notifications are blocked. Allow them in browser site settings.');
   const { publicKey } = await api.request<{ publicKey: string }>('/devices/web-push/config');
   const registration = await registerServiceWorker();
@@ -32,7 +33,7 @@ export async function enableWebPush() {
     await subscription.unsubscribe();
     subscription = null;
   }
-  subscription ||= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes });
+  subscription ||= await withBrowserTimeout(registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes }), 'The browser could not connect to its push service. Try Chrome or Edge and check notification permissions.');
   await api.request('/devices/web-push', { method: 'POST', body: JSON.stringify(subscription.toJSON()) });
 }
 

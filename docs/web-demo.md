@@ -84,7 +84,7 @@ The service worker intentionally does not cache account data or telemetry.
 ## Verification completed
 
 - API compilation, mobile TypeScript check and production web export passed.
-- Nine automated tests passed, including simulated driver location → corridor
+- Ten automated tests passed, including simulated driver location → corridor
   evaluation → officer alert → acknowledgement back to the driver, using an
   isolated test database substitute.
 - Slow push requests no longer block subsequent officers or driver updates.
@@ -98,7 +98,7 @@ The service worker intentionally does not cache account data or telemetry.
   icons and authenticated API separation. The server sends an origin-only
   cross-origin referrer policy for map provider requests.
 
-The Render deployment, Android home-screen installation and real device GPS /
+Android home-screen installation and real device GPS /
 push delivery still require verification on the deployed HTTPS service. No live
 Render data was changed during these tests.
 
