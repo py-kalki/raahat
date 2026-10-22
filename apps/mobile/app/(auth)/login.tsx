@@ -63,7 +63,7 @@ export default function LoginScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {/* Top Greeting */}
             <View style={styles.header}>
-              <Text style={styles.subGreeting}>Raahat Security Gateway</Text>
+              <Text style={styles.subGreeting}>Raah Security Gateway</Text>
               <EditorialHeadline
                 plainText="Welcome to"
                 italicText="Emergency Corridor."
@@ -143,7 +143,7 @@ export default function LoginScreen() {
             {/* Primary Action Button */}
             <View style={styles.ctaWrapper}>
               <PillButton
-                label="Sign In to Raahat"
+                label="Sign In to Raah"
                 loading={isLoading}
                 onPress={handleLogin}
               />

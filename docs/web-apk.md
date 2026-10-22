@@ -1,13 +1,39 @@
-# Raahat hosted Android APK
+# Raah hosted Android APK
+
+## Version 1.0.2: notification setup
+
+The display name is now **Raah**. The package ID and signing key stay the same so
+this installs as an update over 1.0.1. On Android 13+, the launcher asks for
+POST_NOTIFICATIONS before the first browser handoff. Declining still permits app
+use; the launcher offers a notification-settings button for enabling it later.
+
+After sign-in, already-granted browser permission now creates a missing push
+subscription and saves it to the server. Previously login only reattached an
+existing subscription, leaving new devices unregistered. Officers see a persistent
+notification setup/status control and a Send test notification button. Readiness
+means browser permission plus subscription plus successful server registration;
+push-service acceptance does not prove that Android displayed the notification.
+Explicit notification opt-out is respected on subsequent logins.
+
+For the final phone check: install the update, allow notifications, sign in as an
+officer, use Enable phone notifications if setup is needed, then Send test
+notification. Check the notification tray and repeat with the app backgrounded.
+The Preview on-screen alarm button intentionally only displays the red modal.
+
+Seven Android 15 Robolectric tests verify startup, the native permission prompt,
+permission denial/settings recovery, trusted-origin routing, and a delegated
+notification with a valid icon and a high-priority channel. Existing user channel
+settings are preserved. Android lint and APK signature verification pass. Real
+device background delivery still requires the phone check above.
 
 The dedicated `com.raahat.web` app opens https://raahat-n1e2.onrender.com using
-Android Browser Helper's Trusted Web Activity. It has its own Raahat launcher icon
+Android Browser Helper's Trusted Web Activity. It has its own Raah launcher icon
 and uses the deployed website, with no Metro or bundled React Native runtime.
 It can coexist with the older `com.raahat.app` APK. Internet and an up-to-date
 TWA-capable browser (recommended: Chrome) are required.
 
-Version 1.0.1 is labelled **Raahat Web** and uses a persistent native entry screen.
-It attempts a verified browser session once, keeps an Open Raahat button available,
+Version 1.0.1 is labelled **Raah Web** and uses a persistent native entry screen.
+It attempts a verified browser session once, keeps an Open Raah button available,
 and displays launch errors or a five-second browser timeout. Open in browser
 explicitly chooses an external browser, avoiding a deep-link loop back into the
 APK. Returning or restoring the screen does not automatically relaunch it.
@@ -47,7 +73,7 @@ are still required for background push; installing this APK does not configure
 the server. See `web-demo.md` for the two-device demonstration.
 
 Copy the APK to your phone, open it, and allow installation from the app you used
-to open the file. No USB debugging is needed to install it. If the older Raahat
+to open the file. No USB debugging is needed to install it. If the older Raah
 app remains installed, distinguish this build in Android App info by package
 `com.raahat.web` (or remove the older one yourself).
 

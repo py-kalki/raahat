@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Stack, Link, useRouter, useSegments } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import { OfficerAlerts } from '../components/OfficerAlerts';
+import NotificationSetup from '../components/NotificationSetup';
 import { Platform, View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,10 +18,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       {Platform.OS === 'web' && <View style={{ padding: 10, backgroundColor: '#1F3A2A', flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: 'white', fontSize: 12 }}>RAAHAT · DEMONSTRATION</Text>
+        <Text style={{ color: 'white', fontSize: 12 }}>RAAH · DEMONSTRATION</Text>
         <Link href="/demo" style={{ color: 'white', fontSize: 13, textDecorationLine: 'underline' }}>Demo setup</Link>
       </View>}
       <StatusBar style="dark" />
+      <NotificationSetup />
       <Stack
         screenOptions={{
           headerShown: false,

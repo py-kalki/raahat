@@ -47,7 +47,7 @@ devicesRouter.post('/web-push/test', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id }, select: { pushToken: true } });
     if (!user?.pushToken?.startsWith('webpush:')) { res.status(400).json({ error: 'Enable browser notifications first.' }); return; }
-    const sent = await sendWebPush(user.pushToken, { title: 'Raahat demo notification', body: 'Browser notifications are connected. This is a test, not an emergency.' });
+    const sent = await sendWebPush(user.pushToken, { title: 'Raah demo notification', body: 'Browser notifications are connected. This is a test, not an emergency.' });
     res.status(sent ? 200 : 502).json(sent ? { success: true } : { error: 'Push delivery failed. Enable notifications again and check server configuration.' });
   } catch { res.status(500).json({ error: 'Could not send the test notification.' }); }
 });

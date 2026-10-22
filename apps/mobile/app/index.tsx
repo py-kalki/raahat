@@ -83,7 +83,7 @@ export default function IndexScreen() {
             <View style={styles.header}>
               <View style={styles.badgeRow}>
                 <Siren size={16} color="#C8503F" />
-                <Text style={styles.subGreeting}>RAAHAT EMERGENCY CORRIDOR</Text>
+                <Text style={styles.subGreeting}>RAAH EMERGENCY CORRIDOR</Text>
               </View>
               <EditorialHeadline
                 plainText="Green Corridor"

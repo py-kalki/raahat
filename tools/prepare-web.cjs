@@ -8,7 +8,7 @@ if (fs.existsSync(trustFile)) {
 }
 const htmlPath = path.join(mobile, 'dist/index.html');
 let html = fs.readFileSync(htmlPath, 'utf8');
-html = html.replace(/<title>.*?<\/title>/, '<title>Raahat — Corridor Demo</title>');
+html = html.replace(/<title>.*?<\/title>/, '<title>Raah — Corridor Demo</title>');
 if (!html.includes('manifest.webmanifest')) {
   html = html.replace('</head>', '<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#1F3A2A"><script src="/pwa.js" defer></script></head>');
 }

@@ -4,8 +4,8 @@ self.addEventListener('activate', event => event.waitUntil(self.clients.claim())
 self.addEventListener('push', event => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch { /* Use safe defaults. */ }
-  event.waitUntil(self.registration.showNotification(payload.title || 'Raahat corridor alert', {
-    body: payload.body || 'Open Raahat to view the latest corridor update.',
+  event.waitUntil(self.registration.showNotification(payload.title || 'Raah corridor alert', {
+    body: payload.body || 'Open Raah to view the latest corridor update.',
     icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
     tag: payload.alertId || 'raahat-demo', renotify: true,
     data: { url: '/' },

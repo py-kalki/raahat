@@ -1,6 +1,10 @@
 package com.raahat.web;
 
 import android.app.Activity;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.provider.Settings;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
@@ -31,6 +35,9 @@ public class MainActivity extends Activity {
     private boolean bound;
     private boolean pending;
     private Uri destination;
+    static final int NOTIFICATION_PERMISSION = 41;
+    private boolean openAfterPermission;
+    private TextView notificationStatus;
     private final Runnable timeout = () -> showFailure("The browser did not respond. Try Open in browser, or update Chrome.");
 
     @Override public void onCreate(Bundle state) {
@@ -42,29 +49,90 @@ public class MainActivity extends Activity {
         screen.setPadding(padding, padding * 3, padding, padding);
         screen.setBackgroundColor(Color.rgb(247, 248, 244));
         TextView title = new TextView(this);
-        title.setText("Raahat Web");
+        title.setText("Raah");
         title.setTextSize(30);
         title.setTextColor(Color.rgb(31, 58, 42));
         screen.addView(title);
         TextView version = new TextView(this);
-        version.setText("Version 1.0.1 · Hosted demo");
+        version.setText("Version 1.0.2 · Hosted demo");
         screen.addView(version);
         status = new TextView(this);
         status.setTextSize(17);
         status.setPadding(0, padding, 0, padding);
-        status.setText("Raahat uses your browser securely. Internet access is required.");
+        status.setText("Raah uses your browser securely. Internet access is required.");
         screen.addView(status);
         open = new Button(this);
-        open.setText("Open Raahat");
-        open.setOnClickListener(v -> launch());
+        open.setText("Open Raah");
+        open.setOnClickListener(v -> beginLaunch());
         screen.addView(open);
         Button browser = new Button(this);
         browser.setText("Open in browser");
         browser.setOnClickListener(v -> openInBrowser());
         screen.addView(browser);
+        notificationStatus = new TextView(this);
+        notificationStatus.setPadding(0, padding, 0, padding / 2);
+        screen.addView(notificationStatus);
+        Button notifications = new Button(this);
+        notifications.setText("Enable phone notifications");
+        notifications.setOnClickListener(v -> enablePhoneNotifications());
+        screen.addView(notifications);
         setContentView(screen);
         // Restoring or returning to the entry screen must not cause a launch loop.
-        if (state == null) handler.post(this::launch);
+        if (state == null) handler.post(this::beginLaunch);
+    }
+
+    boolean notificationPermissionMissing() {
+        return Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED;
+    }
+
+    void beginLaunch() {
+        if (notificationPermissionMissing() && !getPreferences(MODE_PRIVATE).getBoolean("notificationAsked", false)) {
+            openAfterPermission = true;
+            requestNotificationPermission();
+        } else launch();
+    }
+
+    private void requestNotificationPermission() {
+        getPreferences(MODE_PRIVATE).edit().putBoolean("notificationAsked", true).apply();
+        status.setText("Allow notifications to receive corridor alerts outside the app. You can still use the app if you decline.");
+        if (Build.VERSION.SDK_INT >= 33) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION);
+    }
+
+    void enablePhoneNotifications() {
+        openAfterPermission = false;
+        if (notificationPermissionMissing() && (!getPreferences(MODE_PRIVATE).getBoolean("notificationAsked", false)
+                || shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))) {
+            requestNotificationPermission();
+        } else {
+            Intent settings = Build.VERSION.SDK_INT >= 26
+                    ? new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName())
+                    : new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()));
+            try { startActivity(settings); }
+            catch (RuntimeException error) { status.setText("Open Android Settings → Apps → Raah → Notifications to enable alerts."); }
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == NOTIFICATION_PERMISSION) {
+            refreshNotificationStatus();
+            if (openAfterPermission) { openAfterPermission = false; launch(); }
+        }
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        refreshNotificationStatus();
+    }
+
+    private void refreshNotificationStatus() {
+        if (notificationStatus == null) return;
+        boolean enabled = !notificationPermissionMissing()
+                && androidx.core.app.NotificationManagerCompat.from(this).areNotificationsEnabled();
+        notificationStatus.setText(enabled
+                ? "Phone notifications allowed. Sign in and enable corridor notifications in the app to connect this account."
+                : "Phone notifications are off. Enable them to receive alerts when the app is in the background.");
     }
 
     static Uri safeDestination(Uri uri) {
@@ -83,7 +151,7 @@ public class MainActivity extends Activity {
         releaseConnection();
         pending = true;
         open.setEnabled(false);
-        status.setText("Opening Raahat…");
+        status.setText("Opening Raah…");
         try {
             final String browser = browserPackage();
             if (browser == null) {
@@ -106,7 +174,7 @@ public class MainActivity extends Activity {
                         handler.removeCallbacks(timeout);
                         pending = false;
                         open.setEnabled(true);
-                        status.setText("Raahat opened in your browser. Tap Open Raahat to return to it.");
+                        status.setText("Raah opened in your browser. Tap Open Raah to return to it.");
                     } catch (RuntimeException | LinkageError error) {
                         showFailure("The app session could not open (" + error.getClass().getSimpleName()
                                 + "). Tap Open in browser.");
@@ -145,7 +213,7 @@ public class MainActivity extends Activity {
                     return;
                 } catch (RuntimeException ignored) { /* Try the next installed browser. */ }
             }
-            showFailure("No browser is available. Enable or install Chrome, then tap Open Raahat.");
+            showFailure("No browser is available. Enable or install Chrome, then tap Open Raah.");
         } catch (RuntimeException | LinkageError error) {
             showFailure("The browser could not open. Enable or update Chrome and try again.");
         }

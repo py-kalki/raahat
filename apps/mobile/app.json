@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Raahat",
+    "name": "Raah",
     "slug": "raahat",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -35,7 +35,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Raahat requires background location to track emergency corridors and alert traffic officers."
+          "locationAlwaysAndWhenInUsePermission": "Raah requires background location to track emergency corridors and alert traffic officers."
         }
       ]
     ]

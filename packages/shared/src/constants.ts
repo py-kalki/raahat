@@ -16,5 +16,5 @@ export const SOCKET_EVENTS = {
   ALERT_DISMISS: 'alert:dismiss',
 } as const;
 
-export const APP_NAME = 'Raahat';
+export const APP_NAME = 'Raah';
 export const APP_TAGLINE = 'Green Corridor for Life';

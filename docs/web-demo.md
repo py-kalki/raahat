@@ -72,7 +72,7 @@ not a live emergency dispatch deployment. No one should rely on it for emergenci
 ```
 pnpm build:demo
 pnpm --filter @raahat/mobile typecheck
-pnpm --filter @raahat/api exec tsx --test tests/web-demo.test.ts
+pnpm --filter @raahat/api exec tsx --test tests/web-demo.test.ts tests/web-push-registration.test.ts
 pnpm start:api
 ```
 
@@ -85,7 +85,7 @@ The service worker intentionally does not cache account data or telemetry.
 ## Verification completed
 
 - API compilation, mobile TypeScript check and production web export passed.
-- Ten automated tests passed, including simulated driver location → corridor
+- Seventeen automated tests passed, including browser permission/subscription registration and simulated driver location → corridor
   evaluation → officer alert → acknowledgement back to the driver, using an
   isolated test database substitute.
 - Slow push requests no longer block subsequent officers or driver updates.

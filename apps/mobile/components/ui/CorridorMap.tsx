@@ -150,7 +150,7 @@ export const CorridorMap: React.FC<CorridorMapProps> = ({
             border: 'none',
             borderRadius: 20,
           }}
-          title="Raahat Emergency Corridor Map"
+          title="Raah Emergency Corridor Map"
         />
       </View>
     );

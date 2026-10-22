@@ -200,7 +200,7 @@ export default function OfficerHomeScreen() {
           <Pressable onPress={handleTestAlert} style={styles.demoTrigger}>
             <GlassView radius="pill" style={styles.demoPill}>
               <AlertCircle size={14} color="#C8503F" />
-              <Text style={styles.demoText}>Simulate High-Priority Alarm</Text>
+              <Text style={styles.demoText}>Preview on-screen alarm</Text>
             </GlassView>
           </Pressable>
 

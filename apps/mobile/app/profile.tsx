@@ -195,7 +195,7 @@ export default function ProfileScreen() {
           <View style={styles.logoutWrapper}>
             <Pressable onPress={handleLogout} style={styles.logoutBtn}>
               <LogOut size={18} color="#C8503F" />
-              <Text style={styles.logoutText}>Sign Out of Raahat Grid</Text>
+              <Text style={styles.logoutText}>Sign Out of Raah Grid</Text>
             </Pressable>
           </View>
         </ScrollView>

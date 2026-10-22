@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Raahat Web</string>
+    <string name="app_name">Raah</string>
     <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://raahat-n1e2.onrender.com\"}}]</string>
     <color name="brand">#1F3A2A</color>
 </resources>

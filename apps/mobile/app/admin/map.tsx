@@ -70,7 +70,7 @@ export default function AdminMapScreen() {
           <View style={styles.headerRow}>
             <View>
               <Text style={styles.adminTag}>Central Command Center</Text>
-              <Text style={styles.adminTitle}>Raahat Live Grid</Text>
+              <Text style={styles.adminTitle}>Raah Live Grid</Text>
             </View>
 
             <View style={styles.headerActions}>
