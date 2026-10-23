@@ -26,22 +26,49 @@ test('unresponsive browser permission promises fail visibly instead of hanging',
   await assert.rejects(withBrowserTimeout(new Promise(() => {}), 'Use Chrome or Edge', 5), /Use Chrome or Edge/);
 });
 
-test('GPS falls back to network positioning without fabricating a position', async () => {
-  const requested: boolean[] = [];
-  const position = { coords: { latitude: 28, longitude: 77, accuracy: 40 } } as GeolocationPosition;
-  const provider = { getCurrentPosition(success: any, failure: any, options: any) {
-    requested.push(options.enableHighAccuracy);
-    if (options.enableHighAccuracy) failure({ code: 2 }); else success(position);
-  } };
+test('GPS waits for a fresh accurate fix and clears the foreground watch', async () => {
+  const cleared: number[] = [];
+  const fix = (accuracy: number, age = 0) => ({ timestamp: Date.now() - age,
+    coords: { latitude: 28, longitude: 77, accuracy } }) as GeolocationPosition;
+  const position = fix(20);
+  const provider = { watchPosition(success: any, _failure: any, options: any) {
+    assert.equal(options.enableHighAccuracy, true);
+    assert.equal(options.maximumAge, 0);
+    success(fix(10, 60000)); // Ignore an accurate-looking cached fix.
+    success(fix(5000)); // Do not accept a coarse network fix.
+    success(position);
+    return 7;
+  }, clearWatch(id: number) { cleared.push(id); } };
   assert.equal(await getBrowserPosition(provider), position);
-  assert.deepEqual(requested, [true, false]);
+  assert.deepEqual(cleared, [7]);
 });
 
-test('denied GPS is not retried; silent webviews time out', async () => {
-  let calls = 0;
-  await assert.rejects(getBrowserPosition({ getCurrentPosition(_success: any, failure: any) { calls++; failure({ code: 1 }); } }), /permission denied/);
+test('denied GPS is not retried and the watch is stopped', async () => {
+  let calls = 0, cleared = 0;
+  await assert.rejects(getBrowserPosition({ watchPosition(_success: any, failure: any) {
+    calls++; failure({ code: 1 }); return 4;
+  }, clearWatch() { cleared++; } }), /permission denied/);
   assert.equal(calls, 1);
-  await assert.rejects(getBrowserPosition({ getCurrentPosition() {} }, 1), /No location was saved/);
+  assert.equal(cleared, 1);
+});
+
+test('silent or coarse GPS fails visibly without saving a fabricated location', async () => {
+  let cleared = 0;
+  await assert.rejects(getBrowserPosition({ watchPosition() { return 3; }, clearWatch() { cleared++; } }, 5), /No new location was saved/);
+  await assert.rejects(getBrowserPosition({ watchPosition(success: any) {
+    success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy: 4500 } }); return 4;
+  }, clearWatch() { cleared++; } }, 5), /too imprecise/);
+  assert.equal(cleared, 2);
+});
+
+test('GPS retains the best acceptable fix while waiting for improvement', async () => {
+  let cleared = false;
+  const position = await getBrowserPosition({ watchPosition(success: any) {
+    for (const accuracy of [500, 80, 150]) success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy } });
+    return 1;
+  }, clearWatch() { cleared = true; } }, 5);
+  assert.equal(position.coords.accuracy, 80);
+  assert.equal(cleared, true);
 });
 
 test('slow push cannot block the next officer live alert or driver loop', async t => {

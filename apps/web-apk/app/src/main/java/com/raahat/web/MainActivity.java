@@ -36,8 +36,10 @@ public class MainActivity extends Activity {
     private boolean pending;
     private Uri destination;
     static final int NOTIFICATION_PERMISSION = 41;
+    static final int LOCATION_PERMISSION = 42;
     private boolean openAfterPermission;
     private TextView notificationStatus;
+    private TextView locationStatus;
     private final Runnable timeout = () -> showFailure("The browser did not respond. Try Open in browser, or update Chrome.");
 
     @Override public void onCreate(Bundle state) {
@@ -54,7 +56,7 @@ public class MainActivity extends Activity {
         title.setTextColor(Color.rgb(31, 58, 42));
         screen.addView(title);
         TextView version = new TextView(this);
-        version.setText("Version 1.0.2 · Hosted demo");
+        version.setText("Version 1.0.3 · Hosted demo");
         screen.addView(version);
         status = new TextView(this);
         status.setTextSize(17);
@@ -76,7 +78,16 @@ public class MainActivity extends Activity {
         notifications.setText("Enable phone notifications");
         notifications.setOnClickListener(v -> enablePhoneNotifications());
         screen.addView(notifications);
-        setContentView(screen);
+        locationStatus = new TextView(this);
+        locationStatus.setPadding(0, padding, 0, padding / 2);
+        screen.addView(locationStatus);
+        Button location = new Button(this);
+        location.setText("Enable precise location");
+        location.setOnClickListener(v -> enablePreciseLocation());
+        screen.addView(location);
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.addView(screen);
+        setContentView(scroll);
         // Restoring or returning to the entry screen must not cause a launch loop.
         if (state == null) handler.post(this::beginLaunch);
     }
@@ -90,7 +101,42 @@ public class MainActivity extends Activity {
         if (notificationPermissionMissing() && !getPreferences(MODE_PRIVATE).getBoolean("notificationAsked", false)) {
             openAfterPermission = true;
             requestNotificationPermission();
+        } else launchWithLocationPermission();
+    }
+
+    boolean preciseLocationMissing() {
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void launchWithLocationPermission() {
+        if (preciseLocationMissing() && !getPreferences(MODE_PRIVATE).getBoolean("locationAsked", false)) {
+            openAfterPermission = true;
+            requestLocationPermission();
         } else launch();
+    }
+
+    private void requestLocationPermission() {
+        getPreferences(MODE_PRIVATE).edit().putBoolean("locationAsked", true).apply();
+        status.setText("Choose Precise location and Allow while using the app. Your post is saved only when you capture GPS inside Raah.");
+        requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_PERMISSION);
+    }
+
+    void enablePreciseLocation() {
+        openAfterPermission = false;
+        if (preciseLocationMissing() && (!getPreferences(MODE_PRIVATE).getBoolean("locationAsked", false)
+                || shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION))) {
+            requestLocationPermission();
+        } else {
+            try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName()))); }
+            catch (RuntimeException error) { status.setText("Open Android Settings → Apps → Raah → Permissions → Location and enable Precise location."); }
+        }
+    }
+
+    private void refreshLocationStatus() {
+        if (locationStatus == null) return;
+        locationStatus.setText(preciseLocationMissing()
+                ? "Precise location is not allowed. Enable it for an accurate officer post. In browser mode, allow precise location for Chrome too."
+                : "Precise location allowed. Keep device Location on, then capture GPS in Raah. Permission alone does not guarantee a good GPS fix.");
     }
 
     private void requestNotificationPermission() {
@@ -117,6 +163,9 @@ public class MainActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == NOTIFICATION_PERMISSION) {
             refreshNotificationStatus();
+            if (openAfterPermission) { openAfterPermission = false; launchWithLocationPermission(); }
+        } else if (requestCode == LOCATION_PERMISSION) {
+            refreshLocationStatus();
             if (openAfterPermission) { openAfterPermission = false; launch(); }
         }
     }
@@ -124,6 +173,7 @@ public class MainActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         refreshNotificationStatus();
+        refreshLocationStatus();
     }
 
     private void refreshNotificationStatus() {

@@ -25,6 +25,7 @@ import static org.robolectric.Shadows.shadowOf;
 public class MainActivityTest {
     @Before public void allowNotificationsByDefault() {
         shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(Manifest.permission.POST_NOTIFICATIONS);
+        shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION);
     }
 
     @Test public void android15RequestsNotificationPermissionBeforeBrowserLaunch() {
@@ -59,6 +60,7 @@ public class MainActivityTest {
     private String status(MainActivity activity) {
         ViewGroup content = activity.findViewById(android.R.id.content);
         ViewGroup layout = (ViewGroup) content.getChildAt(0);
+        layout = (ViewGroup) layout.getChildAt(0);
         return ((TextView) layout.getChildAt(2)).getText().toString();
     }
 
@@ -104,6 +106,51 @@ public class MainActivityTest {
         assertEquals(MainActivity.HOME, MainActivity.safeDestination(Uri.parse("https://raahat-n1e2.onrender.com:9999/")));
         Uri officer = Uri.parse("https://raahat-n1e2.onrender.com/officer");
         assertEquals(officer, MainActivity.safeDestination(officer));
+    }
+
+    @Test public void requestsFineAndCoarseTogetherAndDenialDoesNotCloseApp() {
+        shadowOf(RuntimeEnvironment.getApplication()).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION);
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertArrayEquals(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    shadowOf(activity).getLastRequestedPermission().requestedPermissions);
+            assertEquals(MainActivity.LOCATION_PERMISSION, shadowOf(activity).getLastRequestedPermission().requestCode);
+            activity.onRequestPermissionsResult(MainActivity.LOCATION_PERMISSION,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    new int[]{PackageManager.PERMISSION_DENIED, PackageManager.PERMISSION_DENIED});
+            assertFalse(activity.isFinishing());
+            assertTrue(status(activity).contains("No compatible browser"));
+        }
+    }
+
+    @Test public void approximateLocationIsNotReportedAsPreciseAndSettingsAreAvailable() {
+        shadowOf(RuntimeEnvironment.getApplication()).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION);
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).create(new Bundle()).start().resume()) {
+            MainActivity activity = controller.get();
+            assertTrue(activity.preciseLocationMissing());
+            activity.getPreferences(android.content.Context.MODE_PRIVATE).edit().putBoolean("locationAsked", true).commit();
+            activity.enablePreciseLocation();
+            assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    shadowOf(activity).getNextStartedActivity().getAction());
+        }
+    }
+
+    @Test public void firstLaunchRequestsLocationAfterNotificationResult() {
+        shadowOf(RuntimeEnvironment.getApplication()).denyPermissions(Manifest.permission.POST_NOTIFICATIONS,
+                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION);
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(MainActivity.NOTIFICATION_PERMISSION, shadowOf(activity).getLastRequestedPermission().requestCode);
+            // Android's result dispatcher clears this before invoking the callback.
+            // This test invokes the callback directly instead of running PermissionController.
+            org.robolectric.util.ReflectionHelpers.setField(activity, "mHasCurrentPermissionsRequest", false);
+            activity.onRequestPermissionsResult(MainActivity.NOTIFICATION_PERMISSION,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS}, new int[]{PackageManager.PERMISSION_DENIED});
+            assertEquals(MainActivity.LOCATION_PERMISSION, shadowOf(activity).getLastRequestedPermission().requestCode);
+            assertTrue(status(activity).contains("Choose Precise location"));
+        }
     }
 
     @Test public void delegatedNotificationHasAnIconAndHighPriorityChannel() {

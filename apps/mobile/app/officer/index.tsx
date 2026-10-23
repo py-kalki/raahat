@@ -74,7 +74,7 @@ export default function OfficerHomeScreen() {
 
   const handleToggleDuty = async (val: boolean) => {
     setDutyBusy(true);
-    setStatusMessage(val ? 'Requesting location — allow browser location access. This can take up to 20 seconds.' : 'Switching duty off…');
+    setStatusMessage(val ? 'Getting a fresh GPS fix (up to 25 seconds). Allow Precise location if prompted; existing permission may be remembered.' : 'Switching duty off…');
     try {
       const location = val ? await requestAndGetCurrentLocation() : null;
       await setOnDuty(val);
@@ -83,7 +83,7 @@ export default function OfficerHomeScreen() {
         catch (error) { await setOnDuty(false).catch(() => {}); throw error; }
         useOfficerStore.setState({ locationRecordedAt: new Date().toISOString() });
       } else useOfficerStore.setState({ locationRecordedAt: null });
-      setStatusMessage(val ? 'Post recorded once. Refresh after moving or after 30 minutes.' : 'Off duty. Location sharing stopped.');
+      setStatusMessage(location ? `Post saved at ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}. Reported accuracy: ±${Math.round(location.accuracy || 0)} m. Refresh after moving or after 30 minutes.` : 'Off duty. Location sharing stopped.');
     } catch (err: any) { setStatusMessage(err.message || 'Failed to update duty'); }
     finally { setDutyBusy(false); }
   };

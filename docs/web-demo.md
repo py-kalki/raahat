@@ -91,14 +91,14 @@ The service worker intentionally does not cache account data or telemetry.
 ## Verification completed
 
 - API compilation, mobile TypeScript check and production web export passed.
-- Twenty automated tests passed, including ride creation at pickup, GPS refresh
+- Twenty-two automated tests passed, including ride creation at pickup, GPS refresh
   during an existing ride, exclusion of ineligible posts, browser permission/subscription registration and simulated driver location → corridor
   evaluation → officer alert → acknowledgement back to the driver, using an
   isolated test database substitute.
 - Slow push requests no longer block subsequent officers or driver updates.
   Officer alerts are subscribed at app level, including on the Demo setup screen.
-- GPS retries a failed high-accuracy fix using network-based positioning and
-  bounds unresponsive browser callbacks. Denied permission is never bypassed.
+- GPS watches briefly for an accurate, fresh fix, rejects coarse/stale positions,
+  and clears its watch on completion, denial or timeout. Denied permission is never bypassed.
 - Browser checks passed for driver/officer sign-in, connected demo controls,
   starting/stopping simulation, officer preview acknowledgement/dismissal,
   notification setup errors, and the setup screen at a 390-pixel viewport.

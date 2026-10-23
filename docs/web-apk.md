@@ -1,5 +1,27 @@
 # Raah hosted Android APK
 
+## Version 1.0.3: precise location and fix quality
+
+Install this update over 1.0.2. Before the browser handoff, the launcher requests
+Android fine and coarse location permissions together, after the notification
+request. Choose **Precise** and **While using the app**. Denial does not close the
+app; **Enable precise location** offers another request or Android app settings.
+Already-granted permissions are remembered, so no new dialog is expected each time.
+
+Web GPS capture uses a foreground watch for at most 25 seconds with high accuracy
+and no cached positions requested. It stops on a fresh fix within a reported 50 m,
+or uses the best fix within 100 m at the deadline. Coarse, stale and invalid fixes
+are rejected rather than saved. The watch is cleared on success, denial or timeout;
+there is no background tracking. Officer capture displays coordinates and reported
+accuracy. Accuracy is an OS estimate, not proof of the true position. The legacy
+native location helper also no longer substitutes a default coordinate on failure.
+
+Phone verification: enable device Location, grant Raah precise location, open the
+officer station and refresh GPS near a window or outdoors. In regular browser mode,
+Chrome and the website need location access too. Confirm the reported accuracy and
+position, then test a nearby driver's ride. Physical GPS accuracy still needs a
+real-device check.
+
 ## Version 1.0.2: notification setup
 
 The display name is now **Raah**. The package ID and signing key stay the same so
@@ -20,7 +42,7 @@ officer, use Enable phone notifications if setup is needed, then Send test
 notification. Check the notification tray and repeat with the app backgrounded.
 The Preview on-screen alarm button intentionally only displays the red modal.
 
-Seven Android 15 Robolectric tests verify startup, the native permission prompt,
+Ten Android 15 Robolectric tests verify startup, the native permission prompts,
 permission denial/settings recovery, trusted-origin routing, and a delegated
 notification with a valid icon and a high-priority channel. Existing user channel
 settings are preserved. Android lint and APK signature verification pass. Real

@@ -8,50 +8,22 @@ export interface UserLocation {
 }
 
 export async function requestAndGetCurrentLocation(): Promise<UserLocation> {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.warn('Location permission denied, using default base location');
-      return {
-        lat: 28.5355,
-        lng: 77.2882,
-        accuracy: null,
-        address: 'Current Location (Permission Denied)',
-      };
-    }
-
-    const location = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-
-    const userLoc: UserLocation = {
-      lat: location.coords.latitude,
-      lng: location.coords.longitude,
-      accuracy: location.coords.accuracy,
-    };
-
-    try {
-      const [geocode] = await Location.reverseGeocodeAsync({
-        latitude: userLoc.lat,
-        longitude: userLoc.lng,
-      });
-
-      if (geocode) {
-        const parts = [geocode.name, geocode.street, geocode.city, geocode.region].filter(Boolean);
-        userLoc.address = parts.join(', ') || `${userLoc.lat.toFixed(4)}, ${userLoc.lng.toFixed(4)}`;
-      }
-    } catch {
-      userLoc.address = `GPS Fix (${userLoc.lat.toFixed(4)}, ${userLoc.lng.toFixed(4)})`;
-    }
-
-    return userLoc;
-  } catch (error) {
-    console.error('Error fetching GPS location:', error);
-    return {
-      lat: 28.5355,
-      lng: 77.2882,
-      accuracy: null,
-      address: 'Central Emergency Base',
-    };
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (permission.status !== 'granted') {
+    throw new Error('Location permission denied. Allow Precise location in Android Settings → Apps → Raah → Permissions. No new location was saved.');
   }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const location = await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest }),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('GPS timed out. Turn on device Location and retry outdoors. No new location was saved.')), 25000); }),
+    ]);
+    const { latitude: lat, longitude: lng, accuracy } = location.coords;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 ||
+      accuracy == null || !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 100 ||
+      !Number.isFinite(location.timestamp) || Date.now() - location.timestamp > 30000) {
+      throw new Error('GPS is too imprecise. Allow Precise location and retry near a window or outdoors. No new location was saved.');
+    }
+    return { lat, lng, accuracy, address: `Current location (${lat.toFixed(5)}, ${lng.toFixed(5)})` };
+  } finally { if (timer) clearTimeout(timer); }
 }
