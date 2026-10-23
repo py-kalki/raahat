@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -43,6 +43,20 @@ export default function HomeScreen() {
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loadingHospitals, setLoadingHospitals] = useState(true);
 
+  const captureId = useRef(0);
+  const captureLocation = async () => {
+    const id = ++captureId.current;
+    setLoadingLoc(true); setLocationError(''); setLocation(null); setHospitals([]); setLoadingHospitals(false);
+    try {
+      const loc = await requestAndGetCurrentLocation({ preview: true });
+      if (id !== captureId.current) return;
+      setLocation(loc); setLoadingLoc(false); setLoadingHospitals(true);
+      const nearby = await getNearestHospitals(loc.lat, loc.lng);
+      if (id === captureId.current) setHospitals(nearby);
+    } catch (error: any) { if (id === captureId.current) setLocationError(error.message || 'Location unavailable. Retry or enter coordinates in trip setup.'); }
+    finally { if (id === captureId.current) { setLoadingLoc(false); setLoadingHospitals(false); } }
+  };
+
   useEffect(() => {
     if (!user || user.role === 'ADMIN') return;
     // If an officer accesses /home, redirect to their dedicated Officer Guard Station
@@ -51,34 +65,12 @@ export default function HomeScreen() {
       return;
     }
 
-    // 1. Fetch real GPS location and dynamically search nearest hospitals
-    (async () => {
-      setLoadingLoc(true);
-      try {
-      const loc = await requestAndGetCurrentLocation();
-      setLocation(loc);
-      setLoadingLoc(false);
-
-      setLoadingHospitals(true);
-      try {
-        const nearby = await getNearestHospitals(loc.lat, loc.lng);
-        setHospitals(nearby);
-      } catch (err) {
-        console.warn('Error discovering nearby hospitals:', err);
-      } finally {
-        setLoadingHospitals(false);
-      }
-      } catch (error: any) {
-        setLocationError(error.message || 'Location unavailable. Open Demo setup to retry.');
-      } finally {
-        setLoadingLoc(false);
-        setLoadingHospitals(false);
-      }
-    })();
+    void captureLocation();
 
     // 2. Fetch real active trip if any exists in DB
     fetchActiveTrip();
-  }, [user]);
+    return () => { captureId.current++; };
+  }, [user?.id]);
 
   return (
     <FogBackground>
@@ -125,10 +117,13 @@ export default function HomeScreen() {
             </View>
             <View style={styles.gpsAddressRow}>
               <MapPin size={16} color="#3E6B4B" />
-              <Text style={styles.gpsAddressText} numberOfLines={1}>
-                {locationError || location?.address || 'Acquiring location...'}
+              <Text style={styles.gpsAddressText} accessibilityLiveRegion="polite">
+                {locationError || location?.address || 'Requesting location (up to 8 seconds). Allow access if prompted…'}
               </Text>
             </View>
+            {!!location && <Text style={styles.gpsAddressText}>{location.accuracy != null && location.accuracy > 100 ? 'Approximate preview only' : 'Location received'} · reported accuracy ±{Math.round(location.accuracy || 0)} m</Text>}
+            {!loadingLoc && <PillButton label="Retry location" variant="secondary" onPress={() => { void captureLocation(); }} />}
+            {!!locationError && <PillButton label="Enter pickup coordinates in trip setup" variant="secondary" onPress={() => router.push('/driver/trip-setup')} />}
           </GlassView>
 
           {/* Editorial Headline */}
@@ -197,12 +192,12 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.sectionTitle}>Nearest Trauma Centers</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Auto-detected from your current coordinates
+                  {location ? 'Based on your reported location; confirm pickup before starting a ride' : 'Waiting for a location before searching'}
                 </Text>
               </View>
               <View style={styles.autoDetectedBadge}>
                 <Radio size={11} color="#3E6B4B" />
-                <Text style={styles.autoDetectedBadgeText}>GPS AUTO-DETECTED</Text>
+                <Text style={styles.autoDetectedBadgeText}>{loadingLoc ? 'WAITING FOR LOCATION' : !location ? 'LOCATION UNAVAILABLE' : (location.accuracy || 0) > 100 ? 'APPROXIMATE LOCATION' : 'LOCATION RECEIVED'}</Text>
               </View>
             </View>
 
@@ -216,7 +211,7 @@ export default function HomeScreen() {
             ) : hospitals.length === 0 ? (
               <GlassView radius="md" elevation="1" style={styles.hospEmptyCard}>
                 <Text style={styles.hospEmptyText}>
-                  No medical facilities found within 30km. Using Apex Trauma registry.
+                  {!location ? 'Location is not available yet. Retry above or enter your pickup coordinates in trip setup.' : 'No nearby hospitals found. Search for a destination in trip setup.'}
                 </Text>
               </GlassView>
             ) : (

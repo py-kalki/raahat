@@ -17,7 +17,8 @@ import { GlassView } from '../../components/ui/GlassView';
 import { EditorialHeadline } from '../../components/ui/EditorialHeadline';
 import { PillButton } from '../../components/ui/PillButton';
 import { useTripStore } from '../../store/tripStore';
-import { requestAndGetCurrentLocation } from '../../lib/location';
+import { requestAndGetCurrentLocation, UserLocation } from '../../lib/location';
+import { ManualLocation } from '../../components/ManualLocation';
 import { getNearestHospitals, Hospital, searchHospitals } from '../../lib/hospitals';
 import {
   MapPin,
@@ -63,13 +64,13 @@ export default function TripSetupScreen() {
     lng: params.hospLng ? parseFloat(params.hospLng) : 77.2100,
   });
 
-  const fetchLiveGPS = async () => {
+  const fetchLiveGPS = async (manual?: UserLocation) => {
     setIsLocating(true);
     setLocationReady(false);
     setLocationError('');
     setLoadingHospitals(true);
     try {
-      const loc = await requestAndGetCurrentLocation();
+      const loc = manual ?? await requestAndGetCurrentLocation();
       setPickup({
         name: loc.address || `Live Location (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`,
         lat: loc.lat,
@@ -99,6 +100,7 @@ export default function TripSetupScreen() {
     } catch (error: any) {
       setLocationError(error.message || 'Could not get your location. Allow location access and retry.');
       setPickup({ name: 'Location unavailable — tap Refresh GPS', lat: 0, lng: 0 });
+      if (manual) throw error;
     } finally {
       setIsLocating(false);
       setLoadingHospitals(false);
@@ -177,8 +179,8 @@ export default function TripSetupScreen() {
               </View>
               <View style={styles.stopInfo}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={styles.stopLabel}>CURRENT GPS ORIGIN</Text>
-                  <Pressable onPress={fetchLiveGPS} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.stopLabel}>PICKUP POSITION</Text>
+                  <Pressable onPress={() => fetchLiveGPS()} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     {isLocating ? (
                       <ActivityIndicator size="small" color="#4C9A6A" />
                     ) : (
@@ -207,6 +209,7 @@ export default function TripSetupScreen() {
           </GlassView>
 
           {/* Quick Destination Presets (GPS Auto-Detected) */}
+          <ManualLocation disabled={isLocating} onConfirm={fetchLiveGPS} />
           <View style={styles.presetSection}>
             <View style={styles.presetHeaderRow}>
               <View>

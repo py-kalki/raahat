@@ -7,7 +7,7 @@ export interface UserLocation {
   address?: string;
 }
 
-export async function requestAndGetCurrentLocation(): Promise<UserLocation> {
+export async function requestAndGetCurrentLocation(_options?: { preview?: boolean }): Promise<UserLocation> {
   const permission = await Location.requestForegroundPermissionsAsync();
   if (permission.status !== 'granted') {
     throw new Error('Location permission denied. Allow Precise location in Android Settings → Apps → Raah → Permissions. No new location was saved.');

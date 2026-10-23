@@ -19,6 +19,7 @@ import { alertService } from '../src/services/alert.service';
 import { pushService } from '../src/services/push.service';
 import { getBrowserPosition } from '../../mobile/lib/browser-location';
 import { withBrowserTimeout } from '../../mobile/lib/browser-timeout';
+import { parseManualLocation } from '../../mobile/lib/manual-location';
 const { io: connectSocket } = createRequire(path.resolve(__dirname, '../../mobile/package.json'))('socket.io-client');
 
 test('unresponsive browser permission promises fail visibly instead of hanging', async () => {
@@ -69,6 +70,44 @@ test('GPS retains the best acceptable fix while waiting for improvement', async 
   }, clearWatch() { cleared = true; } }, 5);
   assert.equal(position.coords.accuracy, 80);
   assert.equal(cleared, true);
+});
+
+test('network provider rescues a stalled watch without accepting inaccurate posts', async () => {
+  let cleared = 0, fallbackCalls = 0;
+  const provider = { watchPosition() { return 5; }, clearWatch() { cleared++; },
+    getCurrentPosition(success: any, _failure: any, options: any) {
+      fallbackCalls++;
+      assert.equal(options.enableHighAccuracy, false);
+      assert.equal(options.maximumAge, 0);
+      success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy: 30 } });
+    } };
+  assert.equal((await getBrowserPosition(provider, 30)).coords.accuracy, 30);
+  assert.equal(cleared, 1);
+  assert.equal(fallbackCalls, 1);
+});
+
+test('approximate positions can preview hospitals but cannot silently become officer posts', async () => {
+  const provider = { watchPosition(success: any) {
+    success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy: 2500 } }); return 1;
+  }, clearWatch() {} };
+  assert.equal((await getBrowserPosition(provider, 5, Infinity)).coords.accuracy, 2500);
+  await assert.rejects(getBrowserPosition(provider, 5), /too imprecise/);
+});
+
+test('denied location does not fall back to another provider', async () => {
+  let calls = 0;
+  await assert.rejects(getBrowserPosition({ watchPosition(_success: any, error: any) { error({ code: 1 }); return 1; },
+    clearWatch() {}, getCurrentPosition() { calls++; } }, 5), /permission denied/);
+  assert.equal(calls, 0);
+});
+
+test('manual coordinates require valid explicit input and never claim GPS accuracy', () => {
+  for (const [lat, lng] of [['', '77'], ['28', ''], ['91', '0'], ['0', '181'], ['NaN', '0']])
+    assert.throws(() => parseManualLocation(lat, lng));
+  const location = parseManualLocation('0', '0');
+  assert.equal(location.lat, 0);
+  assert.equal(location.accuracy, null);
+  assert.match(location.address!, /Manually confirmed/);
 });
 
 test('slow push cannot block the next officer live alert or driver loop', async t => {

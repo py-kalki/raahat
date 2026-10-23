@@ -1,3 +1,12 @@
+async function fetchHospitalData(url: string, options: RequestInit) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return { ok: response.ok, data: response.ok ? await response.json() : [] };
+  } finally { clearTimeout(timer); }
+}
+
 export interface Hospital {
   id?: string;
   name: string;
@@ -82,7 +91,7 @@ export async function getNearestHospitals(
     const delta = 0.25; // ~25km search window
     const url = `https://nominatim.openstreetmap.org/search?format=json&amenity=hospital&limit=20&viewbox=${userLng - delta},${userLat + delta},${userLng + delta},${userLat - delta}&bounded=1&addressdetails=1`;
 
-    const response = await fetch(url, {
+    const response = await fetchHospitalData(url, {
       headers: {
         'User-Agent': 'Raahat-Emergency-Corridor/1.0 (Emergency Ambulance System)',
         Accept: 'application/json',
@@ -90,7 +99,7 @@ export async function getNearestHospitals(
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const data = response.data;
       if (Array.isArray(data) && data.length > 0) {
         const liveHospitals: Hospital[] = data
           .filter((item: any) => {
@@ -177,7 +186,7 @@ export async function searchHospitals(
       url += `&viewbox=${userLng - delta},${userLat + delta},${userLng + delta},${userLat - delta}`;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchHospitalData(url, {
       headers: {
         'User-Agent': 'Raahat-Emergency-Corridor/1.0',
         Accept: 'application/json',
@@ -185,7 +194,7 @@ export async function searchHospitals(
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const data = response.data;
       return (data || [])
         .map((item: any, idx: number) => {
           const hLat = parseFloat(item.lat);

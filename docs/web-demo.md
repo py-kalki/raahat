@@ -75,6 +75,16 @@ not a live emergency dispatch deployment. No one should rely on it for emergenci
 
 ## Local verification
 
+Desktop location recovery: the dashboard accepts an approximate location only for
+previewing nearby hospitals, labels its accuracy, and stops waiting after 8 seconds.
+Recording GPS uses a 12-second deadline and retains the 100 m accuracy limit.
+A network-position request can rescue an unavailable high-accuracy watch; denial
+is never bypassed. Driver trip setup and the officer station also accept explicitly
+confirmed manual coordinates for demos. Manual input is never labelled GPS.
+Hospital lookup requests time out after 10 seconds, and location errors remain
+fully visible with retry controls. In Brave, allow this site's Location permission;
+on Windows, enable Location services and desktop-app location access.
+
 ```
 pnpm build:demo
 pnpm --filter @raahat/mobile typecheck
@@ -91,7 +101,7 @@ The service worker intentionally does not cache account data or telemetry.
 ## Verification completed
 
 - API compilation, mobile TypeScript check and production web export passed.
-- Twenty-two automated tests passed, including ride creation at pickup, GPS refresh
+- Twenty-six automated tests passed, including ride creation at pickup, GPS refresh
   during an existing ride, exclusion of ineligible posts, browser permission/subscription registration and simulated driver location → corridor
   evaluation → officer alert → acknowledgement back to the driver, using an
   isolated test database substitute.

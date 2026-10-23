@@ -19,7 +19,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useOfficerStore } from '../../store/officerStore';
 import { socketManager } from '../../lib/socket';
 import { api } from '../../lib/api';
-import { requestAndGetCurrentLocation } from '../../lib/location';
+import { requestAndGetCurrentLocation, UserLocation } from '../../lib/location';
+import { ManualLocation } from '../../components/ManualLocation';
 import { CORRIDOR_CONFIG } from '@raahat/shared';
 
 import {
@@ -72,19 +73,19 @@ export default function OfficerHomeScreen() {
     return () => { socket?.off('connect', sync); socket?.off('disconnect', disconnected); };
   }, [user?.id]);
 
-  const handleToggleDuty = async (val: boolean) => {
+  const handleToggleDuty = async (val: boolean, manual?: UserLocation) => {
     setDutyBusy(true);
-    setStatusMessage(val ? 'Getting a fresh GPS fix (up to 25 seconds). Allow Precise location if prompted; existing permission may be remembered.' : 'Switching duty off…');
+    setStatusMessage(val ? 'Getting a fresh GPS fix (up to 12 seconds). Allow Precise location if prompted; existing permission may be remembered.' : 'Switching duty off…');
     try {
-      const location = val ? await requestAndGetCurrentLocation() : null;
+      const location = val ? (manual ?? await requestAndGetCurrentLocation()) : null;
       await setOnDuty(val);
       if (location) {
         try { await api.sendOfficerLocation(location.lat, location.lng); }
         catch (error) { await setOnDuty(false).catch(() => {}); throw error; }
         useOfficerStore.setState({ locationRecordedAt: new Date().toISOString() });
       } else useOfficerStore.setState({ locationRecordedAt: null });
-      setStatusMessage(location ? `Post saved at ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}. Reported accuracy: ±${Math.round(location.accuracy || 0)} m. Refresh after moving or after 30 minutes.` : 'Off duty. Location sharing stopped.');
-    } catch (err: any) { setStatusMessage(err.message || 'Failed to update duty'); }
+      setStatusMessage(location ? `Post saved at ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}. ${location.accuracy == null ? 'Manually confirmed; GPS accuracy not measured.' : `Reported accuracy: ±${Math.round(location.accuracy)} m.`} Refresh after moving or after 30 minutes.` : 'Off duty. Location sharing stopped.');
+    } catch (err: any) { setStatusMessage(err.message || 'Failed to update duty'); if (manual) throw err; }
     finally { setDutyBusy(false); }
   };
 
@@ -192,6 +193,8 @@ export default function OfficerHomeScreen() {
           {onDuty && <Pressable accessibilityRole="button" disabled={dutyBusy} onPress={() => handleToggleDuty(true)} style={styles.demoTrigger}>
             <Text style={styles.demoText}>{dutyBusy ? 'Updating location…' : 'Refresh my GPS and check active rides'}</Text>
           </Pressable>}
+
+          <ManualLocation disabled={dutyBusy} onConfirm={location => handleToggleDuty(true, location)} />
 
           {/* Device Telemetry Health Cards */}
           <View style={styles.healthRow}>
