@@ -4,6 +4,7 @@ import { authenticateJwt, requireRoles, requireVerified } from '../middleware/au
 import { validateBody } from '../middleware/validate.middleware';
 import { OfficerDutyUpdateSchema, OfficerLocationUpdateSchema } from '@raahat/shared';
 import { alertService } from '../services/alert.service';
+import { evaluateOfficerActiveTrips } from '../services/officer-corridor.service';
 
 export const officersRouter = Router();
 
@@ -89,6 +90,7 @@ officersRouter.post(
         },
       });
 
+      await evaluateOfficerActiveTrips(userId);
       res.json({ success: true, timestamp: Date.now() });
     } catch (error) {
       res.status(500).json({ error: 'Failed to update officer location' });

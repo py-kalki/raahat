@@ -46,6 +46,12 @@ does not verify the website. `/manifest.webmanifest` and `/sw.js` must also load
 2. Officer: open **Demo setup**, press **Get my location**, and allow location.
    This records one stationary post and sets duty on. Refresh after moving or
    after 30 minutes. Denied GPS never substitutes a Delhi coordinate on the web.
+   The officer station also has **Refresh my GPS and check active rides**. An
+   expired post is marked explicitly; refreshing immediately evaluates existing
+   rides, without waiting for the driver to send another location. Ride alerts
+   require a verified, on-duty officer within 300 m of the route and the four-minute
+   approach window. Officers at pickup qualify too. A successful test notification
+   checks push delivery only; it does not establish location or ride eligibility.
 3. Officer: press **Enable notifications for this account**, allow notifications,
    then **Send test notification**. Check the phone's notification tray. Tests
    are limited to one every 30 seconds. Use **Disable notifications** to opt out.
@@ -72,7 +78,7 @@ not a live emergency dispatch deployment. No one should rely on it for emergenci
 ```
 pnpm build:demo
 pnpm --filter @raahat/mobile typecheck
-pnpm --filter @raahat/api exec tsx --test tests/web-demo.test.ts tests/web-push-registration.test.ts
+pnpm --filter @raahat/api exec tsx --test tests/web-demo.test.ts tests/web-push-registration.test.ts tests/ride-alerts.test.ts
 pnpm start:api
 ```
 
@@ -85,7 +91,8 @@ The service worker intentionally does not cache account data or telemetry.
 ## Verification completed
 
 - API compilation, mobile TypeScript check and production web export passed.
-- Seventeen automated tests passed, including browser permission/subscription registration and simulated driver location → corridor
+- Twenty automated tests passed, including ride creation at pickup, GPS refresh
+  during an existing ride, exclusion of ineligible posts, browser permission/subscription registration and simulated driver location → corridor
   evaluation → officer alert → acknowledgement back to the driver, using an
   isolated test database substitute.
 - Slow push requests no longer block subsequent officers or driver updates.

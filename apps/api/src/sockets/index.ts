@@ -4,6 +4,7 @@ import { prisma } from '../prisma';
 import { SOCKET_EVENTS, DriverLocationUpdate, OfficerLocationUpdate, AlertAckInput, DriverLocationUpdateSchema } from '@raahat/shared';
 import { corridorService } from '../services/corridor.service';
 import { alertService } from '../services/alert.service';
+import { evaluateOfficerActiveTrips } from '../services/officer-corridor.service';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'raahat_jwt_secret_change_in_production_key_123456789';
 
@@ -153,6 +154,7 @@ export function setupSockets(io: Server) {
         });
 
         // Notify admin of officer location update
+        await evaluateOfficerActiveTrips(user.id);
         io.to('role:ADMIN').emit('officer:update', {
           userId: user.id,
           lat,

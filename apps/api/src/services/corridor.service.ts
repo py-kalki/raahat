@@ -26,7 +26,8 @@ export class CorridorService {
     routeGeoJsonRaw: string,
     ambulanceLat: number,
     ambulanceLng: number,
-    currentSpeedMps?: number
+    currentSpeedMps?: number,
+    officerUserId?: string
   ): Promise<{
     newAlerts: EligibleOfficerAlert[];
     dismissals: OfficerToDismiss[];
@@ -47,20 +48,19 @@ export class CorridorService {
         ? currentSpeedMps
         : CORRIDOR_CONFIG.DEFAULT_SPEED_MPS;
 
-    // 2. Fetch on-duty officers (fresh location or active on-duty within 30 mins)
+    // 2. Fetch verified, on-duty officers with a post recorded within 30 minutes.
     const freshnessCutoff = new Date(
-      Date.now() - 30 * 60 * 1000
+      Date.now() - CORRIDOR_CONFIG.OFFICER_POST_FRESHNESS_SECONDS * 1000
     );
 
     const onDutyOfficers = await prisma.officer.findMany({
       where: {
         onDuty: true,
+        ...(officerUserId ? { userId: officerUserId } : {}),
+        user: { verified: true },
         currentLat: { not: null },
         currentLng: { not: null },
-        OR: [
-          { lastLocationAt: { gte: freshnessCutoff } },
-          { lastLocationAt: null },
-        ],
+        lastLocationAt: { gte: freshnessCutoff },
       },
       include: {
         user: {
@@ -119,15 +119,15 @@ export class CorridorService {
         continue;
       }
 
-      // Check if officer is ahead of ambulance and within alert horizon
-      if (distanceAheadM > 0 && !existingAlert) {
-        const etaSec = distanceAheadM / effectiveSpeed;
+      // Include pickup/co-located posts and GPS jitter up to the passed threshold.
+      if (distanceAheadM >= CORRIDOR_CONFIG.PASS_DISMISS_THRESHOLD_METERS && !existingAlert) {
+        const etaSec = Math.max(0, distanceAheadM) / effectiveSpeed;
         if (etaSec <= CORRIDOR_CONFIG.ALERT_HORIZON_SECONDS) {
           newAlerts.push({
             officerId: officer.id,
             userId: officer.userId,
             etaSec: Math.round(etaSec),
-            distanceAheadM: Math.round(distanceAheadM),
+            distanceAheadM: Math.max(0, Math.round(distanceAheadM)),
             officerLat: officer.currentLat,
             officerLng: officer.currentLng,
           });
