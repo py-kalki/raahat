@@ -6,7 +6,7 @@ export async function requestAndGetCurrentLocation(options?: { preview?: boolean
     if (!window.isSecureContext || !navigator.geolocation) {
       throw new Error('Location requires HTTPS (or localhost). Open the HTTPS app address in Android Chrome, not a phone connection to an HTTP LAN address.');
     }
-    const { coords } = await getBrowserPosition(navigator.geolocation, options?.preview ? 8000 : 12000, options?.preview ? Infinity : 100);
+    const { coords } = await getBrowserPosition(navigator.geolocation, options?.preview ? 8000 : 12000);
     return {
         lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy,
         address: `Current location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`,

@@ -103,13 +103,13 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.etaLabel}>ESTIMATED ARRIVAL IN</Text>
-          <Text style={styles.etaTime}>{timeFormatted}</Text>
+          <Text style={styles.etaLabel}>{alert.etaSec < 0 ? 'DEMO BROADCAST TO ALL OFFICERS' : 'ESTIMATED ARRIVAL IN'}</Text>
+          <Text style={styles.etaTime}>{alert.etaSec < 0 ? 'New ride' : timeFormatted}</Text>
 
           <View style={styles.infoRow}>
             <Navigation size={18} color="#A9C4AE" />
             <Text style={styles.distanceText}>
-              {alert.distanceAheadM} meters away
+              {alert.distanceAheadM < 0 ? 'Distance and arrival time not estimated' : `${alert.distanceAheadM} meters away`}
             </Text>
           </View>
 
@@ -121,8 +121,8 @@ export const OfficerAlertModal: React.FC<OfficerAlertModalProps> = ({
 
           <Text style={styles.instruction}>
             {isAcked
-              ? 'Thank you! Keep junction clear until ambulance passes.'
-              : 'Clear lane immediately. Traffic signal manual override or manual clearance required.'}
+              ? (alert.etaSec < 0 ? 'Ride alert acknowledged.' : 'Thank you! Keep junction clear until ambulance passes.')
+              : (alert.etaSec < 0 ? alert.message : 'Clear lane immediately. Traffic signal manual override or manual clearance required.')}
           </Text>
         </View>
 

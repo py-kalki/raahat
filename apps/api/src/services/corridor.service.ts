@@ -1,5 +1,3 @@
-import * as turf from '@turf/turf';
-import { CORRIDOR_CONFIG } from '@raahat/shared';
 import { prisma } from '../prisma';
 
 export interface EligibleOfficerAlert {
@@ -7,136 +5,29 @@ export interface EligibleOfficerAlert {
   userId: string;
   etaSec: number;
   distanceAheadM: number;
-  officerLat: number;
-  officerLng: number;
+  officerLat: number | null;
+  officerLng: number | null;
 }
-
-export interface OfficerToDismiss {
-  alertId: string;
-  officerId: string;
-  userId: string;
-}
+export interface OfficerToDismiss { alertId: string; officerId: string; userId: string; }
 
 export class CorridorService {
-  /**
-   * Evaluates an ambulance location against the trip route and all active on-duty officers.
-   */
-  async evaluateCorridor(
-    tripId: string,
-    routeGeoJsonRaw: string,
-    ambulanceLat: number,
-    ambulanceLng: number,
-    currentSpeedMps?: number,
-    officerUserId?: string
-  ): Promise<{
-    newAlerts: EligibleOfficerAlert[];
-    dismissals: OfficerToDismiss[];
-  }> {
-    const route = JSON.parse(routeGeoJsonRaw);
-    const routeLine = turf.lineString(route.coordinates);
-
-    // 1. Snap ambulance position to route line
-    const ambulancePoint = turf.point([ambulanceLng, ambulanceLat]);
-    const ambulanceSnapped = turf.nearestPointOnLine(routeLine, ambulancePoint, {
-      units: 'meters',
-    });
-    const ambulanceAlongM = ambulanceSnapped.properties.location || 0;
-
-    // Use current vehicle speed if >= 5 m/s (~18 km/h), otherwise fallback to configured default (15 m/s)
-    const effectiveSpeed =
-      currentSpeedMps && currentSpeedMps >= 5
-        ? currentSpeedMps
-        : CORRIDOR_CONFIG.DEFAULT_SPEED_MPS;
-
-    // 2. Fetch verified, on-duty officers with a post recorded within 30 minutes.
-    const freshnessCutoff = new Date(
-      Date.now() - CORRIDOR_CONFIG.OFFICER_POST_FRESHNESS_SECONDS * 1000
-    );
-
-    const onDutyOfficers = await prisma.officer.findMany({
-      where: {
-        onDuty: true,
-        ...(officerUserId ? { userId: officerUserId } : {}),
-        user: { verified: true },
-        currentLat: { not: null },
-        currentLng: { not: null },
-        lastLocationAt: { gte: freshnessCutoff },
-      },
-      include: {
-        user: {
-          select: { id: true, name: true, phone: true },
-        },
-      },
-    });
-
-    // 3. Fetch existing alerts for this trip to prevent re-alerting or identify candidates for dismissal
-    const existingAlerts = await prisma.alert.findMany({
-      where: { tripId },
-      select: {
-        id: true,
-        officerId: true,
-        status: true,
-      },
-    });
-
-    const existingAlertMap = new Map<string, { id: string; status: string }>();
-    existingAlerts.forEach((a) => existingAlertMap.set(a.officerId, { id: a.id, status: a.status }));
-
-    const newAlerts: EligibleOfficerAlert[] = [];
-    const dismissals: OfficerToDismiss[] = [];
-
-    for (const officer of onDutyOfficers) {
-      if (officer.currentLat === null || officer.currentLng === null) continue;
-
-      const officerPoint = turf.point([officer.currentLng, officer.currentLat]);
-      const officerSnapped = turf.nearestPointOnLine(routeLine, officerPoint, {
-        units: 'meters',
-      });
-
-      // Perpendicular distance to route
-      const distanceToRouteM = officerSnapped.properties.dist || 0;
-      if (distanceToRouteM > CORRIDOR_CONFIG.CORRIDOR_WIDTH_METERS) {
-        continue; // Outside corridor width (300m)
-      }
-
-      // Distance along route ahead of ambulance
-      const officerAlongM = officerSnapped.properties.location || 0;
-      const distanceAheadM = officerAlongM - ambulanceAlongM;
-
-      const existingAlert = existingAlertMap.get(officer.id);
-
-      // Check if ambulance has passed this officer (distanceAhead < -100m)
-      if (
-        distanceAheadM < CORRIDOR_CONFIG.PASS_DISMISS_THRESHOLD_METERS &&
-        existingAlert &&
-        existingAlert.status !== 'DISMISSED'
-      ) {
-        dismissals.push({
-          alertId: existingAlert.id,
-          officerId: officer.id,
-          userId: officer.userId,
-        });
-        continue;
-      }
-
-      // Include pickup/co-located posts and GPS jitter up to the passed threshold.
-      if (distanceAheadM >= CORRIDOR_CONFIG.PASS_DISMISS_THRESHOLD_METERS && !existingAlert) {
-        const etaSec = Math.max(0, distanceAheadM) / effectiveSpeed;
-        if (etaSec <= CORRIDOR_CONFIG.ALERT_HORIZON_SECONDS) {
-          newAlerts.push({
-            officerId: officer.id,
-            userId: officer.userId,
-            etaSec: Math.round(etaSec),
-            distanceAheadM: Math.max(0, Math.round(distanceAheadM)),
-            officerLat: officer.currentLat,
-            officerLng: officer.currentLng,
-          });
-        }
-      }
-    }
-
-    return { newAlerts, dismissals };
+  // Demo broadcast: location, duty, route distance and ETA do not gate recipients.
+  // Negative ETA/distance mean "not estimated", never an invented arrival time.
+  async evaluateCorridor(tripId: string, _route: string, _lat: number, _lng: number,
+    _speed?: number, officerUserId?: string): Promise<{ newAlerts: EligibleOfficerAlert[]; dismissals: OfficerToDismiss[] }> {
+    const officers = await prisma.officer.findMany({ where: {
+      user: { verified: true, role: 'OFFICER' },
+      ...(officerUserId ? { userId: officerUserId } : {}),
+    } });
+    const existing = await prisma.alert.findMany({ where: { tripId }, select: { officerId: true } });
+    const notified = new Set(existing.map(alert => alert.officerId));
+    return {
+      newAlerts: officers.filter(officer => !notified.has(officer.id)).map(officer => ({
+        officerId: officer.id, userId: officer.userId, etaSec: -1, distanceAheadM: -1,
+        officerLat: officer.currentLat, officerLng: officer.currentLng,
+      })),
+      dismissals: [],
+    };
   }
 }
-
 export const corridorService = new CorridorService();

@@ -77,7 +77,7 @@ export class PushService {
   ): Promise<boolean> {
     if (!pushToken) return false;
     if (pushToken.startsWith('webpush:')) {
-      return sendWebPush(pushToken, { title: 'Raah — corridor approaching', body: payload.message, alertId: payload.alertId });
+      return sendWebPush(pushToken, { title: 'Raah — emergency ride alert', body: payload.message, alertId: payload.alertId });
     }
 
     // 1. If it's an Expo push token (ExponentPushToken[...]), deliver via Expo Push API

@@ -65,7 +65,7 @@ export default function DemoPanel() {
       {button('Return to my dashboard', () => router.push(user.role === 'OFFICER' ? '/officer' : user.role === 'ADMIN' ? '/admin/map' : '/home'), running)}
       <Text style={styles.body}>Server: {connected ? 'Connected' : 'Disconnected / reconnecting'}</Text>
       <Text style={styles.heading}>1. Capture your location once</Text>
-      <Text style={styles.body}>Allow Precise location for Raah (or Chrome in browser mode). Permissions may already be remembered. GPS capture takes up to 12 seconds and rejects fixes less accurate than 100 m. For officers, a successful fix records your post and turns duty on. Refresh after moving or after 30 minutes. There is no background tracking.</Text>
+      <Text style={styles.body}>Allow Precise location for Raah (or Chrome in browser mode). Permissions may already be remembered. GPS capture accepts the reported location without an accuracy cutoff. For officers, a successful fix records your post and turns duty on. Location is for display; every verified officer receives ride broadcasts. There is no background tracking.</Text>
       {button('Get my location', () => act(async () => {
         const location = await requestAndGetCurrentLocation();
         if (user.role === 'OFFICER') {

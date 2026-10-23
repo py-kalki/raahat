@@ -27,7 +27,7 @@ test('unresponsive browser permission promises fail visibly instead of hanging',
   await assert.rejects(withBrowserTimeout(new Promise(() => {}), 'Use Chrome or Edge', 5), /Use Chrome or Edge/);
 });
 
-test('GPS waits for a fresh accurate fix and clears the foreground watch', async () => {
+test('GPS accepts the first fresh fix and clears the foreground watch', async () => {
   const cleared: number[] = [];
   const fix = (accuracy: number, age = 0) => ({ timestamp: Date.now() - age,
     coords: { latitude: 28, longitude: 77, accuracy } }) as GeolocationPosition;
@@ -36,7 +36,6 @@ test('GPS waits for a fresh accurate fix and clears the foreground watch', async
     assert.equal(options.enableHighAccuracy, true);
     assert.equal(options.maximumAge, 0);
     success(fix(10, 60000)); // Ignore an accurate-looking cached fix.
-    success(fix(5000)); // Do not accept a coarse network fix.
     success(position);
     return 7;
   }, clearWatch(id: number) { cleared.push(id); } };
@@ -53,26 +52,26 @@ test('denied GPS is not retried and the watch is stopped', async () => {
   assert.equal(cleared, 1);
 });
 
-test('silent or coarse GPS fails visibly without saving a fabricated location', async () => {
+test('silent or invalid GPS fails visibly without saving a fabricated location', async () => {
   let cleared = 0;
   await assert.rejects(getBrowserPosition({ watchPosition() { return 3; }, clearWatch() { cleared++; } }, 5), /No new location was saved/);
   await assert.rejects(getBrowserPosition({ watchPosition(success: any) {
-    success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy: 4500 } }); return 4;
-  }, clearWatch() { cleared++; } }, 5), /too imprecise/);
+    success({ timestamp: Date.now(), coords: { latitude: 999, longitude: 77, accuracy: 4500 } }); return 4;
+  }, clearWatch() { cleared++; } }, 5), /No new location was saved/);
   assert.equal(cleared, 2);
 });
 
-test('GPS retains the best acceptable fix while waiting for improvement', async () => {
+test('GPS returns immediately without an accuracy cutoff', async () => {
   let cleared = false;
   const position = await getBrowserPosition({ watchPosition(success: any) {
     for (const accuracy of [500, 80, 150]) success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy } });
     return 1;
   }, clearWatch() { cleared = true; } }, 5);
-  assert.equal(position.coords.accuracy, 80);
+  assert.equal(position.coords.accuracy, 500);
   assert.equal(cleared, true);
 });
 
-test('network provider rescues a stalled watch without accepting inaccurate posts', async () => {
+test('network provider rescues a stalled watch', async () => {
   let cleared = 0, fallbackCalls = 0;
   const provider = { watchPosition() { return 5; }, clearWatch() { cleared++; },
     getCurrentPosition(success: any, _failure: any, options: any) {
@@ -86,12 +85,13 @@ test('network provider rescues a stalled watch without accepting inaccurate post
   assert.equal(fallbackCalls, 1);
 });
 
-test('approximate positions can preview hospitals but cannot silently become officer posts', async () => {
-  const provider = { watchPosition(success: any) {
-    success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy: 2500 } }); return 1;
-  }, clearWatch() {} };
-  assert.equal((await getBrowserPosition(provider, 5, Infinity)).coords.accuracy, 2500);
-  await assert.rejects(getBrowserPosition(provider, 5), /too imprecise/);
+test('114 m and coarse locations are accepted for both driver and officer capture', async () => {
+  for (const accuracy of [114, 2500, 50000]) {
+    const provider = { watchPosition(success: any) {
+      success({ timestamp: Date.now(), coords: { latitude: 28, longitude: 77, accuracy } }); return 1;
+    }, clearWatch() {} };
+    assert.equal((await getBrowserPosition(provider, 5)).coords.accuracy, accuracy);
+  }
 });
 
 test('denied location does not fall back to another provider', async () => {

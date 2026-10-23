@@ -19,9 +19,9 @@ officersRouter.get('/alerts/active', requireRoles(['OFFICER']), requireVerified,
     });
     res.json(alerts.map(alert => ({
       alertId: alert.id, tripId: alert.tripId, officerId: alert.officerId,
-      etaSec: Math.max(0, alert.etaSec - (Date.now() - alert.alertedAt.getTime()) / 1000),
+      etaSec: alert.etaSec < 0 ? -1 : Math.max(0, alert.etaSec - (Date.now() - alert.alertedAt.getTime()) / 1000),
       distanceAheadM: alert.distanceAheadM, vehicleNumber: alert.trip.vehicleNumber || 'Ambulance',
-      message: 'Pending corridor alert — check the approaching ambulance.',
+      message: alert.etaSec < 0 ? 'Demo broadcast: an emergency ambulance ride is active.' : 'Pending corridor alert — check the approaching ambulance.',
       ambulanceLat: alert.trip.currentLat ?? alert.trip.pickupLat,
       ambulanceLng: alert.trip.currentLng ?? alert.trip.pickupLng,
     })));

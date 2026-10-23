@@ -72,7 +72,7 @@ export default function TripSetupScreen() {
     try {
       const loc = manual ?? await requestAndGetCurrentLocation();
       setPickup({
-        name: loc.address || `Live Location (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`,
+        name: `${loc.address || `Location (${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)})`}${loc.accuracy == null ? '' : ` · accuracy ±${Math.round(loc.accuracy)} m`}`,
         lat: loc.lat,
         lng: loc.lng,
       });
@@ -327,8 +327,8 @@ export default function TripSetupScreen() {
             <View style={styles.summaryItem}>
               <Clock size={20} color="#3E6B4B" />
               <View>
-                <Text style={styles.summaryValue}>~4 min</Text>
-                <Text style={styles.summarySub}>Advance officer alert</Text>
+                <Text style={styles.summaryValue}>All officers</Text>
+                <Text style={styles.summarySub}>New-ride demo broadcast</Text>
               </View>
             </View>
           </GlassView>

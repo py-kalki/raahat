@@ -20,9 +20,9 @@ export async function requestAndGetCurrentLocation(_options?: { preview?: boolea
     ]);
     const { latitude: lat, longitude: lng, accuracy } = location.coords;
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 ||
-      accuracy == null || !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 100 ||
+      accuracy == null || !Number.isFinite(accuracy) || accuracy < 0 ||
       !Number.isFinite(location.timestamp) || Date.now() - location.timestamp > 30000) {
-      throw new Error('GPS is too imprecise. Allow Precise location and retry near a window or outdoors. No new location was saved.');
+      throw new Error('The device returned an invalid location. Retry location capture. No new location was saved.');
     }
     return { lat, lng, accuracy, address: `Current location (${lat.toFixed(5)}, ${lng.toFixed(5)})` };
   } finally { if (timer) clearTimeout(timer); }

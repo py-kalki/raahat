@@ -43,7 +43,7 @@ export class AlertService {
       });
 
       const etaMins = Math.max(1, Math.round(etaSec / 60));
-      const message = `EMERGENCY CORRIDOR: Ambulance arriving in approx ${etaMins} min (${distanceAheadM}m ahead). Clear corridor immediately!`;
+      const message = etaSec < 0 ? 'DEMO BROADCAST: An emergency ambulance ride has started. All traffic-police accounts are notified; check the ride details.' : `EMERGENCY CORRIDOR: Ambulance arriving in approx ${etaMins} min (${distanceAheadM}m ahead). Clear corridor immediately!`;
 
       const payload: EmergencyAlertPayload = {
         alertId: alert.id,

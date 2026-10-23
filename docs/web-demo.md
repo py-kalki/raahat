@@ -1,5 +1,21 @@
 # Render browser demo
 
+## Current demo behavior: broadcast to all officers
+
+As requested, each new ride alerts every verified traffic-police account, including
+those off duty or without a saved location. Location freshness, route proximity,
+accuracy and arrival-time limits do not gate delivery. Each officer gets one alert
+per ride; subsequent position updates do not repeat it. The red alert identifies
+this as a broadcast and does not invent a distance or arrival countdown. Browser
+push still requires the recipient to enable notifications and register their device.
+
+Location capture accepts the first fresh valid coordinate returned by the device,
+including approximate fixes such as ±114 m or ±2500 m. Accuracy is displayed as an
+estimate, with no accuracy cutoff. Missing permission, invalid coordinates or no
+provider response still produce an error; no position is fabricated. Older corridor
+and accuracy-limit descriptions below describe the previous demo behavior.
+
+
 The Express service serves the Expo web export and API together. This is a PWA
 opened in Android Chrome, with an optional home-screen install. A dedicated
 [hosted Android APK](web-apk.md) opens the same site through a Trusted Web Activity.

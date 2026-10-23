@@ -174,7 +174,7 @@ export default function HomeScreen() {
 
               <Text style={styles.heroTitle}>Automated Green Corridor</Text>
               <Text style={styles.heroDesc}>
-                Broadcasting ambulance route automatically alerts traffic police posts within 4 minutes ahead.
+                Starting a ride broadcasts an alert to all verified traffic-police accounts, regardless of distance.
               </Text>
 
               <View style={styles.heroAction}>

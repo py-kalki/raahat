@@ -84,7 +84,7 @@ export default function OfficerHomeScreen() {
         catch (error) { await setOnDuty(false).catch(() => {}); throw error; }
         useOfficerStore.setState({ locationRecordedAt: new Date().toISOString() });
       } else useOfficerStore.setState({ locationRecordedAt: null });
-      setStatusMessage(location ? `Post saved at ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}. ${location.accuracy == null ? 'Manually confirmed; GPS accuracy not measured.' : `Reported accuracy: ±${Math.round(location.accuracy)} m.`} Refresh after moving or after 30 minutes.` : 'Off duty. Location sharing stopped.');
+      setStatusMessage(location ? `Post saved at ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}. ${location.accuracy == null ? 'Manually confirmed; GPS accuracy not measured.' : `Reported accuracy: ±${Math.round(location.accuracy)} m.`} Refresh whenever you want to update your displayed position.` : 'Off duty. Location sharing stopped.');
     } catch (err: any) { setStatusMessage(err.message || 'Failed to update duty'); if (manual) throw err; }
     finally { setDutyBusy(false); }
   };
@@ -162,7 +162,7 @@ export default function OfficerHomeScreen() {
                   onDuty ? styles.dutyTextGreen : styles.dutyTextGray,
                 ]}
               >
-                {onDuty ? (locationFresh ? 'STATUS: ON ACTIVE DUTY' : 'ACTION REQUIRED: REFRESH GPS') : 'STATUS: OFF DUTY'}
+                {onDuty ? (locationFresh ? 'STATUS: ON ACTIVE DUTY' : 'ON DUTY · LOCATION NOT REFRESHED') : 'STATUS: OFF DUTY'}
               </Text>
             </View>
 
@@ -171,7 +171,7 @@ export default function OfficerHomeScreen() {
                 <Text style={styles.toggleTitle}>Corridor Telemetry</Text>
                 <Text style={styles.toggleSub}>
                   {onDuty
-                    ? (locationFresh ? 'Stationary post recorded for this demo' : 'Ride alerts paused until GPS is refreshed')
+                    ? (locationFresh ? 'Stationary post recorded for this demo' : 'Location not refreshed; broadcast alerts remain enabled')
                     : 'Location sharing is paused for privacy'}
                 </Text>
               </View>
@@ -186,9 +186,7 @@ export default function OfficerHomeScreen() {
           </GlassView>
 
           <Text accessibilityLiveRegion="polite" style={styles.toggleSub}>
-            {!onDuty ? 'Turn duty on and capture GPS to receive ride alerts.' : !locationFresh
-              ? 'Your saved location is missing or older than 30 minutes. Test notifications still work, but rides cannot alert this post. Refresh GPS now.'
-              : 'Ride alerts reach officers within 300 m of the route and about 4 minutes ahead, including the pickup. Refresh GPS whenever you move.'}
+            All verified traffic-police accounts receive new-ride alerts in this demo. Location, distance and duty status do not limit alerts. Enable phone notifications for background delivery.
           </Text>
           {onDuty && <Pressable accessibilityRole="button" disabled={dutyBusy} onPress={() => handleToggleDuty(true)} style={styles.demoTrigger}>
             <Text style={styles.demoText}>{dutyBusy ? 'Updating location…' : 'Refresh my GPS and check active rides'}</Text>
